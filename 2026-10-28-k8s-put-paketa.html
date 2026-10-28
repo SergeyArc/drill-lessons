@@ -1,0 +1,409 @@
+<!doctype html>
+<html lang="ru">
+<title>Сеть Pod в k8s</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+
+<style>
+/* Layout: одна колонка урока ~44rem; схема и код скроллятся внутри своих контейнеров */
+:root {
+  --bg: #f6f7f9; --surface: #ffffff; --sunk: #edf0f5;
+  --fg: #1b2230; --muted: #5b6474; --line: #d8dde6;
+  --accent: #1f3864; --accent-soft: #e3e9f4;
+  --dnat: #a8571a; --dnat-soft: #f8ebdf;
+  --ok: #2d6a4f; --ok-soft: #e5f2ea; --no: #9b2226; --no-soft: #f8e7e7;
+  --f-body: "IBM Plex Sans", "Segoe UI", Roboto, Arial, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #12161d; --surface: #19202a; --sunk: #202834;
+  --fg: #e3e7ee; --muted: #98a1b0; --line: #2c3542;
+  --accent: #91afe3; --accent-soft: #223149;
+  --dnat: #f0a35e; --dnat-soft: #3a2a1c;
+  --ok: #74c69d; --ok-soft: #1b3127; --no: #f28b82; --no-soft: #3a2020; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #12161d; --surface: #19202a; --sunk: #202834;
+  --fg: #e3e7ee; --muted: #98a1b0; --line: #2c3542;
+  --accent: #91afe3; --accent-soft: #223149;
+  --dnat: #f0a35e; --dnat-soft: #3a2a1c;
+  --ok: #74c69d; --ok-soft: #1b3127; --no: #f28b82; --no-soft: #3a2020; color-scheme: dark }
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font: 16px/1.6 var(--f-body); }
+.wrap { max-width: 44rem; margin: 0 auto; padding-block: 2rem 4rem;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+h1 { font-size: 1.75rem; line-height: 1.25; margin: 0; color: var(--accent); text-wrap: balance; font-weight: 600; }
+h2 { font-size: 1.15rem; margin: 2.75rem 0 .75rem; color: var(--accent); font-weight: 600; text-wrap: balance; }
+p { margin: .6rem 0; max-width: 65ch; }
+.meta { color: var(--muted); font-size: .875rem; margin-top: .35rem; }
+.step-label { font: 500 .72rem/1 var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+code, .mono { font-family: var(--f-mono); font-size: .9em; }
+code { background: var(--sunk); padding: .05rem .3rem; border-radius: 3px; }
+.plan { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: 1.25rem; }
+.plan a { font-size: .85rem; color: var(--accent); text-decoration: none; border: 1px solid var(--line); padding: .2rem .65rem; border-radius: 999px; background: var(--surface); }
+.plan a:hover, .plan a:focus-visible { border-color: var(--accent); }
+
+.scheme { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: .75rem; margin-top: 1rem; }
+.scheme svg { display: block; min-width: 640px; width: 100%; height: auto; }
+.scheme text { font-family: var(--f-mono); font-size: 12px; fill: var(--fg); }
+.scheme .lbl { fill: var(--muted); font-size: 11px; }
+.scheme .node { fill: var(--sunk); stroke: var(--line); }
+.scheme .pod { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1; }
+.scheme .box { fill: var(--surface); stroke: var(--accent); }
+.scheme .wire { stroke: var(--muted); stroke-width: 1.5; fill: none; }
+.scheme .route { fill: var(--surface); stroke: var(--line); stroke-dasharray: 3 3; }
+.scheme .path { stroke: var(--accent); stroke-width: 3; fill: none; stroke-linecap: round; opacity: .85; }
+.scheme .svc-only { display: none; }
+.scheme.svc .svc-only { display: inline; }
+.scheme .dnatbox { fill: var(--dnat-soft); stroke: var(--dnat); }
+.scheme .dnattxt { fill: var(--dnat); font-weight: 500; }
+
+.tabs { display: flex; gap: .4rem; margin-top: 1rem; flex-wrap: wrap; }
+.tabs button { font: 500 .9rem var(--f-body); padding: .4rem .9rem; border-radius: 6px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); cursor: pointer; }
+.tabs button[aria-selected="true"] { background: var(--accent); border-color: var(--accent); color: var(--bg); }
+.tabs button:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+ol.walk { list-style: none; padding: 0; margin: .9rem 0 0; display: grid; gap: .35rem; counter-reset: s; }
+ol.walk li { counter-increment: s; display: grid; grid-template-columns: 2rem 1fr; gap: .5rem; align-items: baseline; padding: .45rem .6rem; border-radius: 6px; }
+ol.walk li::before { content: counter(s); font: 500 .8rem var(--f-mono); color: var(--muted); text-align: right; }
+ol.walk li.hl { background: var(--dnat-soft); }
+ol.walk li.hl b { color: var(--dnat); }
+ol.walk li > span { min-width: 0; }
+.who { font: .8rem var(--f-mono); color: var(--muted); }
+
+.key { border-left: 3px solid var(--accent); padding: .3rem 0 .3rem .9rem; margin: 1.25rem 0; }
+.key p { margin: .2rem 0; }
+
+/* карточки */
+.deck { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 1.25rem; margin-top: 1rem; }
+.deck-top { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; font-size: .85rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.card-q { font-size: 1.15rem; font-weight: 600; margin: 1rem 0 .4rem; text-wrap: balance; }
+.card-hint { font-size: .85rem; color: var(--muted); }
+.card-a { margin-top: 1rem; padding: .9rem 1rem; background: var(--sunk); border-radius: 6px; }
+.row { display: flex; gap: .5rem; flex-wrap: wrap; margin-top: 1rem; }
+.btn { font: 500 .9rem var(--f-body); padding: .5rem 1rem; border-radius: 6px; border: 1px solid var(--accent); background: transparent; color: var(--accent); cursor: pointer; }
+.btn.primary { background: var(--accent); color: var(--bg); }
+.btn.ok { border-color: var(--ok); color: var(--ok); }
+.btn.no { border-color: var(--no); color: var(--no); }
+.misses { margin-top: 1rem; padding-left: 1.2rem; }
+.misses li { margin: .4rem 0; }
+.misses .a { color: var(--muted); font-size: .92rem; }
+
+/* квиз */
+.qz { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 1rem 1.15rem; margin: 1rem 0; }
+.qz-text { font-weight: 600; }
+.choices { list-style: none; padding: 0; margin: .8rem 0 0; display: grid; gap: .45rem; }
+.choices li { border: 1px solid var(--line); border-radius: 6px; padding: .55rem .8rem; cursor: pointer; background: var(--bg); }
+.choices li:hover { border-color: var(--accent); }
+.choices li:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.choices.done li { cursor: default; }
+.choices li.correct { border-color: var(--ok); background: var(--ok-soft); }
+.choices li.wrong { border-color: var(--no); background: var(--no-soft); }
+.choices li.dim { opacity: .55; }
+.explain { margin-top: .7rem; font-size: .92rem; color: var(--muted); }
+.score { font-variant-numeric: tabular-nums; color: var(--muted); font-size: .9rem; }
+
+.tbl { overflow-x: auto; margin: 1rem 0; }
+table { border-collapse: collapse; width: 100%; min-width: 30rem; font-size: .92rem; }
+th, td { text-align: left; padding: .5rem .6rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-weight: 600; color: var(--muted); font-size: .8rem; }
+h3 { font-size: 1rem; margin: 1.75rem 0 .25rem; font-weight: 600; }
+.pairs { display: grid; grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr)); gap: .75rem; margin: 1.25rem 0; }
+.pair { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: .8rem 1rem; min-width: 0; }
+.pair p { margin: .35rem 0 0; font-size: .95rem; }
+.session li { margin: .5rem 0; }
+.sources { font-size: .9rem; }
+.sources a { color: var(--accent); }
+@media (prefers-reduced-motion: no-preference) { .btn, .choices li, .tabs button { transition: background .15s, border-color .15s; } }
+</style>
+
+<div class="wrap">
+<header>
+  <div class="step-label">k8s · сеть · урок к сессии</div>
+  <h1>Сеть Pod в k8s</h1>
+  <div class="meta">Объект и исполнитель, CNI plugin, Service и kube-proxy, NetworkPolicy, путь пакета · 27–28.10.2026 · ~20 минут</div>
+  <nav class="plan" aria-label="Разделы">
+    <a href="#s-who">1. Кто что делает</a><a href="#s-explain">2. Путь пакета</a><a href="#s-cards">3. Карточки</a><a href="#s-quiz">4. Квиз</a><a href="#s-session">5. На сессии</a>
+  </nav>
+</header>
+
+<section id="s-who">
+<h2>1. Кто что делает</h2>
+<p>Главная идея k8s: <b>объект в API — это запись желаемого состояния, он сам ничего не делает.</b> Делает исполнитель — программа, которая следит за записями и подгоняет под них реальность. Хранятся записи в etcd.</p>
+<div class="tbl"><table>
+<thead><tr><th>Объект в API</th><th>Исполнитель</th><th>Что он делает в ядре Node</th></tr></thead>
+<tbody>
+<tr><td>Pod</td><td>kubelet на каждом Node</td><td>через containerd запускает контейнеры, создаёт namespaces и cgroups</td></tr>
+<tr><td>Service</td><td>kube-proxy на каждом Node</td><td>пишет правила DNAT: адрес Service → адрес одного из Pod</td></tr>
+<tr><td>NetworkPolicy</td><td>агент CNI plugin на каждом Node</td><td>переводит политику с меток в правила фильтрации по IP</td></tr>
+</tbody></table></div>
+<p>Отсюда класс дефектов: <b>объект есть, исполнителя нет — API отвечает «создано», а поведения нет.</b> Ошибки при этом никто не покажет.</p>
+
+<h3>Три задачи сети и три исполнителя</h3>
+<div class="tbl"><table>
+<thead><tr><th>Задача</th><th>Кто решает</th><th>Механизм</th></tr></thead>
+<tbody>
+<tr><td>Pod получает IP и связь с Pod на других Node</td><td>CNI plugin: Flannel, Calico, Cilium</td><td>veth-пара, bridge, маршруты или overlay</td></tr>
+<tr><td>Адрес Service превращается в адрес Pod</td><td>kube-proxy</td><td>DNAT в ядре: iptables по умолчанию, nftables явно</td></tr>
+<tr><td>Кто с кем может соединяться</td><td>NetworkPolicy, исполняет агент CNI plugin</td><td>правила фильтрации в ядре</td></tr>
+</tbody></table></div>
+
+<div class="pairs">
+  <div class="pair"><div class="step-label">Service ≠ CNI plugin</div><p>CNI plugin — проводка: даёт Pod сеть и связь между Node. Service — запись «имя → группа Pod». Pod может ходить к Pod по IP вообще без Service.</p></div>
+  <div class="pair"><div class="step-label">Service ≠ kube-proxy</div><p>Как конфиг nginx и процесс nginx. Service описывает маппинг, kube-proxy заранее записывает его в ядро, а подменяет адрес само ядро. В пути пакета kube-proxy нет.</p></div>
+  <div class="pair"><div class="step-label">NetworkPolicy и вахтёр</div><p>NetworkPolicy — список «кого пускать». Вахтёр — агент CNI plugin: <code>calico-node</code> в Calico, <code>cilium-agent</code> в Cilium, встроенный контроллер в K3s. Flannel вахтёра не даёт, и список молча висит на стене. Упал агент на одном Node — правила там устаревают, тоже молча.</p></div>
+  <div class="pair"><div class="step-label">Два overlay</div><p>OverlayFS — слой записи контейнера поверх слоёв образа. Overlay network — сеть Pod поверх сети между Node: пакет Pod заворачивается в пакет Node, чаще всего в формате VXLAN. Общее у них только слово «поверх».</p></div>
+</div>
+<p><b>veth-пара</b> — провод с двумя концами. Один конец лежит в network namespace Pod и называется там <code>eth0</code>, второй остаётся на Node и воткнут в bridge. Что вошло в один конец, вышло из другого.</p>
+</section>
+
+<section id="s-explain">
+<h2>2. Путь пакета</h2>
+<p>Два Node в одной сети. У каждого Node свой диапазон адресов Pod: Flannel выдал Node 1 подсеть <code>10.1.1.0/24</code>, Node 2 — <code>10.2.2.0/24</code>. По IP Pod сразу видно, на каком Node он живёт.</p>
+
+<div class="tabs" role="tablist" aria-label="Сценарий">
+  <button id="tab-pod" role="tab" aria-selected="true" data-mode="pod">Pod → Pod по IP</button>
+  <button id="tab-svc" role="tab" aria-selected="false" data-mode="svc">Pod → Service</button>
+</div>
+
+<div class="scheme" id="scheme">
+<svg viewBox="0 0 760 400" role="img" aria-label="Два Node: Pod, veth, br0, ядро с таблицей маршрутов, eth0; путь пакета от Pod 1 на Node 1 к Pod 2 на Node 2">
+  <!-- Node 1 -->
+  <rect class="node" x="10" y="10" width="340" height="330" rx="8"/>
+  <text x="24" y="32">Node 1 · eth0 192.168.1.1</text>
+  <rect class="pod" x="30" y="48" width="130" height="58" rx="6"/>
+  <text x="44" y="70">Pod 1</text><text x="44" y="90" class="lbl">10.1.1.2 · eth0</text>
+  <rect class="pod" x="200" y="48" width="130" height="58" rx="6"/>
+  <text x="214" y="70">Pod 2</text><text x="214" y="90" class="lbl">10.1.1.3 · eth0</text>
+  <rect class="box" x="45" y="128" width="100" height="30" rx="5"/><text x="66" y="148">veth111</text>
+  <rect class="box" x="215" y="128" width="100" height="30" rx="5"/><text x="236" y="148">veth222</text>
+  <rect class="box" x="110" y="180" width="140" height="34" rx="5"/><text x="122" y="202">br0 · 10.1.1.1</text>
+  <rect class="route" x="40" y="236" width="280" height="44" rx="5"/>
+  <text x="52" y="254" class="lbl">ядро: таблица маршрутов</text>
+  <text x="52" y="272">10.2.2.0/24 via 192.168.1.2</text>
+  <rect class="box" x="130" y="298" width="100" height="30" rx="5"/><text x="160" y="318">eth0</text>
+  <line class="wire" x1="95" y1="106" x2="95" y2="128"/><line class="wire" x1="265" y1="106" x2="265" y2="128"/>
+  <line class="wire" x1="95" y1="158" x2="150" y2="180"/><line class="wire" x1="265" y1="158" x2="210" y2="180"/>
+  <!-- DNAT в режиме Service -->
+  <g class="svc-only">
+    <rect class="dnatbox" x="236" y="182" width="108" height="48" rx="5"/>
+    <text x="246" y="200" class="dnattxt">DNAT</text>
+    <text x="246" y="220" class="dnattxt" style="font-size:10px">10.96.0.10→10.2.2.3</text>
+  </g>
+
+  <!-- Node 2 -->
+  <rect class="node" x="410" y="10" width="340" height="330" rx="8"/>
+  <text x="424" y="32">Node 2 · eth0 192.168.1.2</text>
+  <rect class="pod" x="430" y="48" width="130" height="58" rx="6"/>
+  <text x="444" y="70">Pod 1</text><text x="444" y="90" class="lbl">10.2.2.2 · eth0</text>
+  <rect class="pod" x="600" y="48" width="130" height="58" rx="6"/>
+  <text x="614" y="70">Pod 2</text><text x="614" y="90" class="lbl">10.2.2.3 · eth0</text>
+  <rect class="box" x="445" y="128" width="100" height="30" rx="5"/><text x="466" y="148">veth111</text>
+  <rect class="box" x="615" y="128" width="100" height="30" rx="5"/><text x="636" y="148">veth222</text>
+  <rect class="box" x="510" y="180" width="140" height="34" rx="5"/><text x="522" y="202">br0 · 10.2.2.1</text>
+  <rect class="route" x="440" y="236" width="280" height="44" rx="5"/>
+  <text x="452" y="254" class="lbl">ядро: таблица маршрутов</text>
+  <text x="452" y="272">10.2.2.0/24 → прямо в br0</text>
+  <rect class="box" x="530" y="298" width="100" height="30" rx="5"/><text x="560" y="318">eth0</text>
+  <line class="wire" x1="495" y1="106" x2="495" y2="128"/><line class="wire" x1="665" y1="106" x2="665" y2="128"/>
+  <line class="wire" x1="495" y1="158" x2="550" y2="180"/><line class="wire" x1="665" y1="158" x2="610" y2="180"/>
+
+  <!-- сеть -->
+  <line class="wire" x1="180" y1="328" x2="180" y2="370"/><line class="wire" x1="180" y1="370" x2="580" y2="370"/><line class="wire" x1="580" y1="370" x2="580" y2="328"/>
+  <text x="330" y="390" class="lbl">реальная сеть между Node</text>
+
+  <!-- путь пакета -->
+  <path class="path" d="M95 106 V128 M95 158 L150 180 M180 214 V236 M180 280 V298 M180 328 V370 H580 V328 M580 298 V280 M580 236 V214 M610 180 L665 158 M665 128 V106"/>
+</svg>
+</div>
+
+<ol class="walk" id="walk-pod">
+  <li><span>Pod 1 шлёт пакет на <code>10.2.2.3</code>. Адрес не из его подсети, поэтому пакет уходит на шлюз <code>10.1.1.1</code>. <span class="who">решает: Pod по своему маршруту по умолчанию</span></span></li>
+  <li><span>eth0 Pod → veth111 → br0. Это один провод с двумя концами и коммутатор. <span class="who">L2, по MAC</span></span></li>
+  <li><span>Кадр адресован шлюзу, то есть самому Node, и br0 отдаёт его в ядро Node 1. <span class="who">br0 работает как интерфейс хоста</span></span></li>
+  <li><span>Ядро смотрит в таблицу маршрутов: <code>10.2.2.0/24 via 192.168.1.2</code> — отправить на Node 2 через eth0. Этот маршрут записал агент Flannel. <span class="who">решает: ядро Node 1</span></span></li>
+  <li><span>Пакет идёт по реальной сети как есть, с адресами Pod. Конверта нет — в этом суть host-gw.</span></li>
+  <li><span>Ядро Node 2: <code>10.2.2.0/24</code> — своя подсеть за br0. Маршрут появился сам, когда br0 назначили адрес. <span class="who">решает: ядро Node 2</span></span></li>
+  <li><span>br0 узнаёт MAC адреса <code>10.2.2.3</code> через ARP и отдаёт кадр в veth222 → eth0 Pod 2. <span class="who">L2, по MAC</span></span></li>
+</ol>
+<ol class="walk" id="walk-svc" hidden>
+  <li><span>Pod 1 шлёт пакет на адрес Service <code>10.96.0.10</code>. Этого адреса нет ни у кого, только в правилах ядра. Пакет уходит на шлюз <code>10.1.1.1</code>.</span></li>
+  <li><span>eth0 Pod → veth111 → br0 → ядро Node 1. Пока всё так же.</span></li>
+  <li class="hl"><span><b>DNAT на Node 1.</b> Сразу при входе пакета в ядро, до выбора маршрута, правило kube-proxy меняет <code>10.96.0.10</code> на адрес одного из Pod за Service, например <code>10.2.2.3</code>. Pod выбирается случайно. <span class="who">меняет: ядро по правилу kube-proxy</span></span></li>
+  <li><span>Дальше ровно путь из соседней вкладки: маршрут на <code>192.168.1.2</code> → Node 2 → br0 → veth222 → Pod 2.</span></li>
+  <li><span>Node 2 не знает, что адрес был от Service. Ответ Pod 2 идёт обратно, и ядро Node 1 по записи о соединении меняет адрес отправителя назад на <code>10.96.0.10</code>.</span></li>
+</ol>
+
+<div class="key">
+  <p><b>DNAT меняет адрес. Маршрут выбирает дорогу.</b> Сначала одно, потом другое, и оба делает ядро Node отправителя.</p>
+  <p>bridge работает на L2 и сам ничего не маршрутизирует. Решения по IP принимает ядро Node, а адрес на br0 — это вход в ядро для Pod.</p>
+</div>
+<p><b>Признаки неверной настройки.</b> Выключена пересылка пакетов (<code>ip_forward</code>) — пакеты в Pod других Node молча пропадают на Node отправителя. Node стоят в разных сегментах сети — host-gw не работает, нужен VXLAN, то есть конверт.</p>
+</section>
+
+<section id="s-cards">
+<h2>3. Карточки</h2>
+<p>Сначала вслух, потом открыть ответ. Отмечай честно: в конце соберётся список того, что не вспомнилось. Порядок случайный.</p>
+<div class="deck" id="deck" aria-live="polite"></div>
+</section>
+
+<section id="s-quiz">
+<h2>4. Квиз на различение</h2>
+<p>Варианты перемешиваются при каждой загрузке. Один выбор на вопрос.</p>
+<div id="quiz"></div>
+<div class="score" id="score"></div>
+</section>
+
+<section id="s-session" class="session">
+<h2>5. На сессии</h2>
+<p>Здесь подсказок не будет: схему проводишь сам, вслух.</p>
+<ul>
+  <li>Без схемы перед глазами: Pod 1 на Node 1 обращается к Service, за которым стоит Pod 2 на Node 2. Назови по порядку все точки пути, где меняется адрес и где выбирается дорога.</li>
+  <li>Случай: Pod на одном Node видят друг друга, а между Node пакеты пропадают, ошибок нигде нет. С чего начнёшь проверку и почему?</li>
+  <li>Связь: почему NetworkPolicy во Flannel не работает, хотя пакеты по этой схеме ходят?</li>
+  <li>Следствие: kube-proxy на Node остановили, CNI plugin работает. Что перестанет работать, а что продолжит?</li>
+</ul>
+</section>
+
+<section class="sources">
+<h2>Источники</h2>
+<ul>
+  <li><a href="https://github.com/flannel-io/flannel/blob/master/Documentation/backends.md">Flannel: backends</a> — host-gw и VXLAN, требование прямой L2-связности. Первичный источник, короткий.</li>
+  <li><a href="https://kubernetes.io/docs/reference/networking/virtual-ips/">Kubernetes: Virtual IPs and Service Proxies</a> — как kube-proxy настраивает Node для Service.</li>
+  <li><a href="https://kubernetes.io/blog/2025/02/28/nftables-kube-proxy/">Kubernetes blog: nftables kube-proxy</a> — почему по умолчанию до сих пор iptables.</li>
+</ul>
+</section>
+</div>
+
+<script>
+(function () {
+  // вкладки сценария
+  var scheme = document.getElementById('scheme');
+  document.querySelectorAll('.tabs button').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var svc = b.dataset.mode === 'svc';
+      document.querySelectorAll('.tabs button').forEach(function (x) { x.setAttribute('aria-selected', String(x === b)); });
+      scheme.classList.toggle('svc', svc);
+      document.getElementById('walk-pod').hidden = svc;
+      document.getElementById('walk-svc').hidden = !svc;
+    });
+  });
+
+  function shuffle(a) { for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+  function esc(s) { return s.replace(/[&<>"]/g, function (c) { return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]; }); }
+
+  // карточки: подставлены сборкой из cards/*.txt
+  var CARDS = [{"q": "Что такое veth-пара?", "a": "veth — два связанных виртуальных интерфейса: что вошло в один, выходит из другого.", "deck": "linux-04-set-izolyatsii"}, {"q": "Что такое bridge в ядре Linux?", "a": "bridge — виртуальный коммутатор второго уровня (L2), пересылающий кадры между подключёнными интерфейсами.", "deck": "linux-04-set-izolyatsii"}, {"q": "Что такое DNAT?", "a": "DNAT — подмена адреса назначения: обращение к одному адресу перенаправляется на другой.", "deck": "linux-04-set-izolyatsii"}, {"q": "Зачем среде с приватным адресом SNAT на выходе?", "a": "Без него ответу некуда вернуться: приватный адрес снаружи не маршрутизируется.", "deck": "linux-04-set-izolyatsii"}, {"q": "Чем объект в API k8s отличается от исполнителя?", "a": "Объект — запись желаемого состояния, исполнитель — программа, которая подгоняет реальность под эту запись.", "deck": "k8s-03-set-i-bezopasnost"}, {"q": "Почему объект в API может существовать, а поведения нет?", "a": "API принимает объект без ошибки, даже если исполнителя нет или он сломан, и реальность молча не меняется.", "deck": "k8s-03-set-i-bezopasnost"}, {"q": "Что такое CNI plugin?", "a": "CNI plugin — компонент, который подключает Pod к сети и выдаёт им адреса.", "deck": "k8s-03-set-i-bezopasnost"}, {"q": "Что такое NetworkPolicy?", "a": "NetworkPolicy — правила k8s о том, какие Pod с кем могут соединяться.", "deck": "k8s-03-set-i-bezopasnost"}, {"q": "Что происходит, если NetworkPolicy не задана?", "a": "Любой Pod может соединиться с любым Pod кластера.", "deck": "k8s-03-set-i-bezopasnost"}, {"q": "Кто исполняет NetworkPolicy на Node?", "a": "Агент CNI plugin переводит политику с меток в правила по IP, а пакеты по ним проверяет ядро.", "deck": "k8s-03-set-i-bezopasnost"}, {"q": "Почему созданная NetworkPolicy может не работать?", "a": "Её исполняет CNI plugin, и если он политики не поддерживает, правила молча игнорируются.", "deck": "k8s-03-set-i-bezopasnost"}, {"q": "Чем Flannel отличается от Calico и Cilium для кластера песочниц?", "a": "Flannel даёт только связность и не исполняет NetworkPolicy, а Calico и Cilium исполняют.", "deck": "k8s-03-set-i-bezopasnost"}, {"q": "Что такое overlay network?", "a": "Виртуальная сеть Pod поверх сети между Node: пакет Pod заворачивается в пакет Node, чаще всего в формате VXLAN.", "deck": "k8s-03-set-i-bezopasnost"}, {"q": "Что такое режим host-gw во Flannel?", "a": "Режим без overlay: Node получает маршруты к подсетям Pod других Node через их реальные адреса, и пакет идёт с адресами Pod без заворачивания.", "deck": "k8s-03-set-i-bezopasnost"}, {"q": "Когда host-gw не подходит?", "a": "Когда Node не в одном сегменте сети: следующий шаг маршрута должен быть доступен напрямую.", "deck": "k8s-03-set-i-bezopasnost"}, {"q": "За счёт чего Pod одного Node соединены между собой?", "a": "Их veth воткнуты в один bridge на Node.", "deck": "k8s-03-set-i-bezopasnost"}, {"q": "Зачем у bridge на Node есть IP-адрес?", "a": "Это шлюз Pod: через него пакеты в чужие подсети попадают в ядро Node.", "deck": "k8s-03-set-i-bezopasnost"}, {"q": "Кто решает, куда отправить пакет в Pod на другом Node?", "a": "Ядро Node по таблице маршрутов, а bridge только передаёт кадр по MAC.", "deck": "k8s-03-set-i-bezopasnost"}, {"q": "Что будет, если на Node выключена пересылка пакетов (ip_forward)?", "a": "Пакеты в Pod других Node молча отбрасываются на Node отправителя.", "deck": "k8s-03-set-i-bezopasnost"}, {"q": "Что такое Service?", "a": "Service — постоянный адрес и имя для группы Pod, распределяющий обращения между ними.", "deck": "k8s-03-set-i-bezopasnost"}, {"q": "Кому принадлежит адрес Service?", "a": "Никому: его нет ни у Pod, ни у интерфейса, он существует только в правилах DNAT на Node.", "deck": "k8s-03-set-i-bezopasnost"}, {"q": "За счёт чего работает Service?", "a": "kube-proxy на каждом Node пишет в ядро правила DNAT, и обращение к адресу Service уходит на адрес одного из Pod.", "deck": "k8s-03-set-i-bezopasnost"}, {"q": "Есть ли kube-proxy в пути пакета к Service?", "a": "Нет: он заранее пишет правила в ядро, а подменяет адрес само ядро.", "deck": "k8s-03-set-i-bezopasnost"}, {"q": "На каком Node происходит DNAT при обращении к Service?", "a": "На Node отправителя, сразу при входе пакета в ядро, до выбора маршрута.", "deck": "k8s-03-set-i-bezopasnost"}, {"q": "Чем DNAT отличается от маршрутизации?", "a": "DNAT меняет адрес назначения пакета, а маршрут только выбирает, куда пакет отправить.", "deck": "k8s-03-set-i-bezopasnost"}, {"q": "Как kube-proxy в режиме iptables выбирает Pod за Service?", "a": "Случайно: для каждого Pod есть правило со своей вероятностью.", "deck": "k8s-03-set-i-bezopasnost"}, {"q": "Чем закрывается подмена адреса Service на Node?", "a": "kube-proxy в режиме iptables (по умолчанию) или nftables, либо Cilium через eBPF вместо kube-proxy.", "deck": "k8s-03-set-i-bezopasnost"}];
+  var deck = document.getElementById('deck');
+  var order, pos, missed, knew;
+  function start(list) { order = shuffle(list.slice()); pos = 0; missed = []; knew = 0; show(); }
+  function show() {
+    if (pos >= order.length) return finish();
+    var c = order[pos];
+    deck.innerHTML =
+      '<div class="deck-top"><span>' + (pos + 1) + ' из ' + order.length + '</span><span>знал ' + knew + ' · не знал ' + missed.length + '</span></div>' +
+      '<div class="card-q">' + esc(c.q) + '</div><div class="card-hint">' + esc(c.deck) + '</div>' +
+      '<div class="row"><button class="btn primary" id="reveal">Ответил вслух — показать</button></div>';
+    document.getElementById('reveal').addEventListener('click', function () {
+      this.parentElement.outerHTML = '<div class="card-a">' + esc(c.a) + '</div>' +
+        '<div class="row"><button class="btn ok" id="yes">Знал</button><button class="btn no" id="no">Не знал</button></div>';
+      document.getElementById('yes').addEventListener('click', function () { knew++; pos++; show(); });
+      document.getElementById('no').addEventListener('click', function () { missed.push(c); pos++; show(); });
+      document.getElementById('yes').focus();
+    });
+  }
+  function finish() {
+    var h = '<div class="deck-top"><span>Готово: ' + order.length + ' карточек</span><span>знал ' + knew + ' · не знал ' + missed.length + '</span></div>';
+    if (missed.length) {
+      h += '<p style="margin-top:1rem">Не вспомнилось — назови их на сессии:</p><ol class="misses">' +
+        missed.map(function (c) { return '<li>' + esc(c.q) + '<div class="a">' + esc(c.a) + '</div></li>'; }).join('') + '</ol>' +
+        '<div class="row"><button class="btn primary" id="again-miss">Ещё раз только эти</button><button class="btn" id="again-all">Все заново</button></div>';
+    } else {
+      h += '<p style="margin-top:1rem">Все вспомнились. Дальше квиз: он проверяет различение, а не память.</p><div class="row"><button class="btn" id="again-all">Все заново</button></div>';
+    }
+    deck.innerHTML = h;
+    var m = document.getElementById('again-miss');
+    if (m) { var list = missed.slice(); m.addEventListener('click', function () { start(list); }); }
+    document.getElementById('again-all').addEventListener('click', function () { start(CARDS); });
+  }
+  start(CARDS);
+
+  // квиз: варианты перемешиваются при загрузке, не при сборке
+  var QUIZ = [
+    { q: 'Пакет от 10.1.1.2 к 10.2.2.3 пришёл на eth0 Node 2. Что решает, куда его отдать дальше?',
+      ok: 'Ядро Node 2 по маршруту: 10.2.2.0/24 — своя подсеть за br0',
+      no: ['DNAT на Node 2 подменяет адрес на адрес Pod', 'kube-proxy на Node 2 принимает пакет и пересылает в Pod', 'агент Flannel на Node 2 разворачивает пакет и отдаёт Pod'],
+      ex: 'NAT здесь нет: адрес назначения уже адрес Pod. kube-proxy в пути пакета не бывает, а в host-gw нет и конверта, который надо разворачивать.' },
+    { q: 'Pod 1 на Node 1 обращается к Service 10.96.0.10, за которым стоит Pod 2 на Node 2. Где происходит DNAT?',
+      ok: 'На Node 1, сразу при входе пакета в ядро, до выбора маршрута',
+      no: ['На Node 2, когда пакет приходит к Pod', 'В Pod kube-proxy, который принимает обращения к Service', 'В объекте Service в API кластера'],
+      ex: 'Правила kube-proxy есть на каждом Node, и срабатывают они на Node отправителя. Иначе ядру Node 1 некуда было бы маршрутизировать пакет на адрес, которого ни у кого нет.' },
+    { q: 'Зачем у br0 на Node 1 адрес 10.1.1.1?',
+      ok: 'Это шлюз Pod: через него пакеты в чужие подсети попадают в ядро Node',
+      no: ['Это адрес Service для Pod этого Node', 'Через него Flannel заворачивает пакеты в конверт', 'С ним bridge сам маршрутизирует пакеты по IP'],
+      ex: 'bridge как коммутатор работает по MAC. Адрес делает br0 ещё и интерфейсом хоста — так пакет попадает в ядро, а маршрут выбирает уже ядро.' },
+    { q: 'Pod на одном Node видят друг друга, а между Node пакеты пропадают. Ошибок в API нет. Что проверить первым?',
+      ok: 'Включена ли на Node пересылка пакетов (ip_forward) и есть ли маршрут к подсети другого Node',
+      no: ['Есть ли NetworkPolicy, разрешающая трафик', 'Работает ли kube-proxy на обоих Node', 'Создан ли Service для Pod'],
+      ex: 'Внутри Node пакет идёт через bridge, между Node — через ядро. Ломается то, что есть только во втором пути. Без NetworkPolicy всё разрешено, а kube-proxy и Service к обращению по IP Pod отношения не имеют.' },
+    { q: 'Node стоят в разных подсетях, между ними маршрутизатор. Какой режим Flannel выбрать?',
+      ok: 'VXLAN: пакет Pod заворачивается в пакет между Node',
+      no: ['host-gw, потому что он быстрее', 'host-gw, если включить ip_forward на всех Node', 'Любой — маршрутизатор сам узнает подсети Pod'],
+      ex: 'host-gw пишет маршрут «через Node 2», а значит Node 2 должен быть доступен напрямую, в одном сегменте. Маршрутизатор между Node про адреса Pod ничего не знает.' },
+    { q: 'В каком случае адреса пакета остаются теми же на всём пути?',
+      ok: 'Pod → Pod по IP Pod в режиме host-gw',
+      no: ['Pod → Service: подменяется только порт, адрес остаётся', 'Ни в каком: каждый bridge меняет адрес на свой', 'Pod → Pod через VXLAN: адрес Pod заменяется адресом Node'],
+      ex: 'При Service меняется адрес назначения. VXLAN адрес Pod не заменяет, а заворачивает пакет целиком в новый пакет. bridge адресов IP не трогает.' },
+    { q: 'Что такое Service в k8s?',
+      ok: 'Запись в API: постоянное имя и адрес для группы Pod',
+      no: ['CNI plugin, который подключает Pod к сети', 'Процесс-балансировщик на каждом Node, через который идут пакеты', 'Виртуальный интерфейс с адресом из 10.96.x на каждом Node'],
+      ex: 'Service — только запись. Через процесс пакеты не идут: kube-proxy заранее пишет правила, подменяет адрес ядро. Интерфейса с адресом Service нет ни на одном Node.' },
+    { q: 'Кластер на Flannel без контроллера политик. NetworkPolicy создана, kubectl её показывает, но трафик не блокируется. Почему?',
+      ok: 'Исполнителя нет: Flannel политики не исполняет, правила в ядро никто не пишет',
+      no: ['Политика применяется только к Pod, созданным после неё', 'kube-proxy ещё не перечитал политику', 'Политику нужно применить в Namespace kube-system'],
+      ex: 'API принимает объект без проверки, есть ли кому его исполнить. Это тот же паттерн, что RuntimeClass без установленного рантайма.' },
+    { q: 'Агент Calico на одном Node упал, на остальных работает. Что с NetworkPolicy на этом Node?',
+      ok: 'Старые правила остаются, но не обновляются: Pod с новыми IP ими не покрыты',
+      no: ['API начнёт отклонять новые политики', 'Весь трафик Pod этого Node блокируется', 'Исполнение подхватит kube-proxy'],
+      ex: 'Правила лежат в ядре Node, и без агента их просто некому переписать. Пересоздан Pod с новым IP — политика на него не распространяется, и никакой ошибки не будет.' },
+    { q: 'В настройках Flannel встречается VXLAN. Что это?',
+      ok: 'Формат конверта, в который пакет Pod заворачивается для пересылки между Node',
+      no: ['Слой файловой системы контейнера (OverlayFS)', 'Режим kube-proxy, альтернатива iptables', 'Тип Service для доступа снаружи кластера'],
+      ex: 'Overlay network и OverlayFS — разные вещи с похожим названием. VXLAN — про сеть: пакет Pod внутри пакета Node.' },
+    { q: 'Где лежат концы veth-пары контейнера Pod?',
+      ok: 'Один в network namespace Pod как eth0, второй на Node, воткнут в bridge',
+      no: ['Оба внутри Pod, Node видит только bridge', 'Это один интерфейс, общий для Pod и Node', 'Один в Pod, второй в Pod kube-proxy'],
+      ex: 'veth — провод через границу network namespace: так изолированный Pod вообще получает выход наружу.' }
+  ];
+  var quiz = document.getElementById('quiz'), score = document.getElementById('score'), right = 0, done = 0;
+  QUIZ.forEach(function (it, n) {
+    var box = document.createElement('div'); box.className = 'qz';
+    var opts = shuffle([{ t: it.ok, c: true }].concat(it.no.map(function (t) { return { t: t, c: false }; })));
+    box.innerHTML = '<div class="qz-text">' + (n + 1) + '. ' + esc(it.q) + '</div><ul class="choices">' +
+      opts.map(function (o) { return '<li tabindex="0" data-c="' + o.c + '">' + esc(o.t) + '</li>'; }).join('') + '</ul><div class="explain" hidden>' + esc(it.ex) + '</div>';
+    var ul = box.querySelector('ul');
+    function pick(li) {
+      if (ul.classList.contains('done')) return;
+      ul.classList.add('done'); done++;
+      if (li.dataset.c === 'true') right++;
+      ul.querySelectorAll('li').forEach(function (x) {
+        if (x.dataset.c === 'true') x.classList.add('correct');
+        else if (x === li) x.classList.add('wrong');
+        else x.classList.add('dim');
+      });
+      box.querySelector('.explain').hidden = false;
+      score.textContent = 'Верно ' + right + ' из ' + done + (done === QUIZ.length ? ' · квиз пройден' : '');
+    }
+    ul.querySelectorAll('li').forEach(function (li) {
+      li.addEventListener('click', function () { pick(li); });
+      li.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(li); } });
+    });
+    quiz.appendChild(box);
+  });
+})();
+</script>
+
+</html>
