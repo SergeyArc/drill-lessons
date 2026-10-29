@@ -1,6 +1,15 @@
 <!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow"><title>Уроки</title>
-<style>body{font:16px/1.6 -apple-system,"Segoe UI",Roboto,sans-serif;max-width:40rem;margin:0 auto;padding:2rem 16px;background:#f6f7f9;color:#1b2230}a{color:#1f3864}@media(prefers-color-scheme:dark){body{background:#12161d;color:#e3e7ee}a{color:#91afe3}}</style></head>
-<body><h1>Уроки</h1><ul>
-<li><a href="2026-10-28-k8s-put-paketa.html">28.10 · Сеть Pod в k8s</a></li>
-</ul></body></html>
+<style>
+:root{--bg:#f6f7f9;--fg:#1b2230;--muted:#5b6474;--line:#d8dde6;--accent:#1f3864;--surface:#fff}
+@media(prefers-color-scheme:dark){:root{--bg:#12161d;--fg:#e3e7ee;--muted:#98a1b0;--line:#2c3542;--accent:#91afe3;--surface:#19202a;color-scheme:dark}}
+body{font:16px/1.6 -apple-system,"Segoe UI",Roboto,sans-serif;max-width:40rem;margin:0 auto;padding:2rem 16px;background:var(--bg);color:var(--fg)}
+h1{color:var(--accent);font-size:1.6rem}h2{font-size:.8rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-top:2rem}
+a.l{display:block;text-decoration:none;color:inherit;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:.8rem 1rem;margin:.6rem 0}
+a.l:hover{border-color:var(--accent)}a.l b{color:var(--accent)}a.l span{display:block;color:var(--muted);font-size:.9rem}
+</style></head>
+<body><h1>Уроки</h1>
+<h2>k8s · сеть</h2>
+<a class="l" href="2026-10-29-k8s-put-paketa.html"><b>1. Путь пакета в k8s</b><span>Кто прокладывает сеть Pod, что такое Service и kube-proxy, где меняется адрес, а где выбирается дорога.</span></a>
+<a class="l" href="2026-10-29-k8s-networkpolicy.html"><b>2. NetworkPolicy в k8s</b><span>От записи в API до проверки пакета: кто исполняет политику, ipset и цепочки, молчаливые поломки и как проверить.</span></a>
+</body></html>
