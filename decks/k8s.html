@@ -1,81 +1,78 @@
-<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex, nofollow"><title>Колоды: Kubernetes</title><style>body{font:16px/1.55 -apple-system,"Segoe UI",Roboto,sans-serif;max-width:46rem;margin:0 auto;padding:1.5rem 16px;background:#f6f7f9;color:#1b2230}h1{color:#1f3864;font-size:1.5rem}h2{color:#1f3864;font-size:1.1rem;margin-top:2rem}a{color:#1f3864}dl{margin:0}dt{font-weight:600;margin-top:.8rem}dd{margin:.2rem 0 0}.m{color:#5b6474;font-size:.85rem}@media(prefers-color-scheme:dark){body{background:#12161d;color:#e3e7ee}h1,h2,a{color:#91afe3}.m{color:#98a1b0}}</style></head><body>
+<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex, nofollow"><title>Колоды: Kubernetes</title><style>body{font:16px/1.55 -apple-system,"Segoe UI",Roboto,sans-serif;max-width:46rem;margin:0 auto;padding:1.5rem 16px;background:#f6f7f9;color:#1b2230}h1{color:#1f3864;font-size:1.5rem}h2{color:#1f3864;font-size:1.1rem;margin-top:2rem}a{color:#1f3864}details{border-bottom:1px solid #d8dde6;padding:.55rem 0}summary{cursor:pointer;font-weight:600}details p{margin:.4rem 0 .2rem;padding-left:1rem}.m{color:#5b6474;font-size:.85rem}@media(prefers-color-scheme:dark){body{background:#12161d;color:#e3e7ee}h1,h2,a{color:#91afe3}details{border-color:#2c3542}.m{color:#98a1b0}}</style></head><body>
 <p class="m"><a href="index.html">Все колоды</a> · обновлено 2026-10-29 · 71 карточек</p>
 <h1>Kubernetes</h1>
-<h2 id="k8s-01-ustroystvo">k8s-01-ustroystvo</h2><dl>
-<dt>Что такое Node в k8s?</dt><dd>Node — машина кластера, на которой реально запускаются контейнеры.</dd>
-<dt>Что такое Pod?</dt><dd>Pod — минимальная единица запуска в k8s: один или несколько контейнеров, которые всегда размещаются на одном Node.</dd>
-<dt>Что общего у контейнеров одного Pod?</dt><dd>Сеть, а при желании и тома; файловые системы и процессы по умолчанию раздельные.</dd>
-<dt>Что такое Deployment?</dt><dd>Deployment — объект, который держит заданное число копий Pod живыми и пересоздаёт упавшие.</dd>
-<dt>Что такое Job?</dt><dd>Job — объект, который запускает Pod до успешного завершения и после этого не перезапускает.</dd>
-<dt>Почему разовую задачу запускают как Job, а не как Deployment?</dt><dd>Deployment поднимет завершившийся Pod заново, считая его упавшим, а Job считает завершение результатом.</dd>
-<dt>Что такое kubelet?</dt><dd>kubelet — агент на каждом Node, который получает описание Pod и добивается, чтобы его контейнеры работали.</dd>
-<dt>Что такое containerd?</dt><dd>containerd — служба на Node, которая управляет контейнерами и для запуска вызывает рантайм вроде runc.</dd>
-<dt>Как Node запускает контейнер Pod?</dt><dd>kubelet передаёт его containerd, а тот вызывает рантайм, который применяет механизмы ядра.</dd>
-<dt>Что такое RuntimeClass?</dt><dd>RuntimeClass — объект k8s, которым Pod выбирает рантайм на Node, например gVisor вместо runc.</dd>
-<dt>За счёт чего RuntimeClass меняет изоляцию?</dt><dd>containerd вызывает другой рантайм, например gVisor вместо runc.</dd>
-<dt>Какой признак, что рантайм из RuntimeClass не установлен на Node?</dt><dd>Pod застревает на создании и не стартует.</dd>
-<dt>За счёт чего контейнеры одного Pod делят сеть?</dt><dd>Они в одном network namespace, который держит pause container — служебный контейнер Pod.</dd>
-<dt>За счёт чего контейнер Pod не видит файлов Node?</dt><dd>mount namespace: видны только файлы образа и смонтированные тома.</dd>
-<dt>За счёт чего контейнер не видит процессов соседних контейнеров?</dt><dd>У каждого контейнера свой PID namespace.</dd>
-<dt>Почему платформы песочниц часто запускают контейнеры сами внутри Pod-воркера, а не создают Pod на каждую песочницу?</dt><dd>Создание Pod проходит через API, scheduler и kubelet и занимает секунды, а свой рантайм внутри воркера стартует контейнер быстрее.</dd>
-<dt>Что теряет платформа, запуская песочницы внутри Pod-воркера сама?</dt><dd>Изоляцию и лимиты k8s для каждой песочницы — их приходится обеспечивать самой платформе через namespaces и cgroups.</dd>
-<dt>Почему Pod-воркер, сам запускающий контейнеры, часто работает в privileged-режиме, то есть со всеми правами root на Node?</dt><dd>Создание namespaces и cgroups требует прав, которых обычному контейнеру не дают.</dd>
-<dt>Чем на практике выясняют, почему Pod не стартует?</dt><dd>Событиями Pod (events): там видна причина — нехватка ресурсов, ошибка рантайма или убийство по памяти.</dd>
-</dl>
-<h2 id="k8s-02-resursy">k8s-02-resursy</h2><dl>
-<dt>Что такое requests?</dt><dd>requests — объём CPU и памяти, который контейнер заявляет как необходимый; scheduler ставит Pod только на Node, где этот объём ещё свободен.</dd>
-<dt>Что такое limits?</dt><dd>limits — потолок потребления контейнера, который на Node становится лимитом его cgroup.</dd>
-<dt>За счёт чего работают limits?</dt><dd>kubelet создаёт cgroup на Pod и на контейнер и записывает в неё лимиты.</dd>
-<dt>В каких единицах задают CPU?</dt><dd>В тысячных долях ядра (millicores): 1000m — одно ядро, 250m — четверть.</dd>
-<dt>Что дают requests по CPU, когда Node загружен?</dt><dd>Гарантированную долю: при конкуренции CPU делится между контейнерами пропорционально их requests.</dd>
-<dt>Что делает limit по CPU?</dt><dd>Ограничивает процессорное время за короткий период и притормаживает контейнер (throttling), даже если Node простаивает.</dd>
-<dt>Почему контейнер тормозит из-за CPU limit, хотя средняя загрузка ниже лимита?</dt><dd>Квота считается за короткие периоды, и многопоточный всплеск выбирает её в начале периода, а остаток периода контейнер стоит.</dd>
-<dt>По какому признаку видно, что CPU limit стоит слишком низко?</dt><dd>Растёт счётчик throttling контейнера при невысокой загрузке Node.</dd>
-<dt>Почему превышение CPU limit не убивает контейнер, а превышение memory limit убивает?</dt><dd>CPU можно притормозить, а занятую память отобрать нельзя, только убить.</dd>
-<dt>Что означает OOMKilled?</dt><dd>OOMKilled — статус контейнера, превысившего memory limit: ядро убило его процессы.</dd>
-<dt>Почему память в requests и limits часто ставят одинаковой?</dt><dd>Память нельзя притормозить, и при нехватке на Node первыми убивают тех, кто вышел за свою заявку.</dd>
-<dt>Что будет с Pod без requests?</dt><dd>scheduler считает его нулевым, ставит куда угодно, а при нехватке ресурсов его выселяют первым.</dd>
-<dt>Что значит, что сумма limits на Node больше его ресурсов?</dt><dd>Node переподписан: это работает, пока все не пришли за ресурсами одновременно, а на пике начинаются throttling и OOMKilled.</dd>
-</dl>
-<h2 id="k8s-03-set-i-bezopasnost">k8s-03-set-i-bezopasnost</h2><dl>
-<dt>Чем Namespace в k8s отличается от namespace в Linux?</dt><dd>В k8s это группировка объектов и прав в API, а в Linux — изоляция того, что видит процесс.</dd>
-<dt>Что такое securityContext?</dt><dd>securityContext — раздел описания Pod или контейнера, где задаются настройки изоляции процесса: пользователь, capabilities, seccomp.</dd>
-<dt>За счёт чего работает securityContext?</dt><dd>Рантайм при запуске применяет к процессу заданного пользователя, capabilities и seccomp.</dd>
-<dt>Что такое ServiceAccount?</dt><dd>ServiceAccount — учётная запись, от имени которой Pod обращается к API кластера.</dd>
-<dt>Чем опасен Pod песочницы с настройками по умолчанию с точки зрения API кластера?</dt><dd>k8s монтирует в Pod токен его ServiceAccount, и код внутри может обращаться к API с этими правами.</dd>
-<dt>Что такое Service?</dt><dd>Service — постоянный адрес и имя для группы Pod, распределяющий обращения между ними.</dd>
-<dt>Зачем Service, если у Pod есть свой адрес?</dt><dd>Адрес Pod меняется при каждом пересоздании, а адрес Service остаётся.</dd>
-<dt>Как Pod находит Service по имени?</dt><dd>Через DNS кластера, который знает имена всех Service.</dd>
-<dt>За счёт чего работает Service?</dt><dd>kube-proxy на каждом Node пишет в ядро правила DNAT, и обращение к адресу Service уходит на адрес одного из Pod.</dd>
-<dt>Что такое CNI plugin?</dt><dd>CNI plugin — компонент, который подключает Pod к сети и выдаёт им адреса.</dd>
-<dt>Что такое NetworkPolicy?</dt><dd>NetworkPolicy — правила k8s о том, какие Pod с кем могут соединяться.</dd>
-<dt>Что происходит, если NetworkPolicy не задана?</dt><dd>Любой Pod может соединиться с любым Pod кластера.</dd>
-<dt>Почему разные Namespace в k8s не изолируют Pod по сети?</dt><dd>Это группировка объектов, а сетевую изоляцию даёт только NetworkPolicy.</dd>
-<dt>За счёт чего работает NetworkPolicy?</dt><dd>Программа с поддержкой NetworkPolicy на каждом Node превращает её в правила фильтрации ядра.</dd>
-<dt>Почему созданная NetworkPolicy может не работать?</dt><dd>В кластере нет программы, которая её исполняет, и API принимает политику без ошибки.</dd>
-<dt>Почему песочница по умолчанию может достучаться до внутренних Service кластера?</dt><dd>Без NetworkPolicy любой Pod соединяется с любым Service, а их имена ещё и находятся через DNS.</dd>
-<dt>Чем объект в API k8s отличается от исполнителя?</dt><dd>Объект — запись желаемого состояния, исполнитель — программа, которая подгоняет реальность под эту запись.</dd>
-<dt>Почему объект в API может существовать, а поведения нет?</dt><dd>API принимает объект без ошибки, даже если исполнителя нет или он сломан, и реальность молча не меняется.</dd>
-<dt>Кому принадлежит адрес Service?</dt><dd>В режимах iptables и nftables — никому: он существует только в правилах DNAT на Node.</dd>
-<dt>Есть ли kube-proxy в пути пакета к Service?</dt><dd>Нет: он заранее пишет правила в ядро, а подменяет адрес само ядро.</dd>
-<dt>Кто исполняет NetworkPolicy на Node?</dt><dd>Программа с поддержкой NetworkPolicy — агент Calico или Cilium либо отдельный контроллер, как в K3s, — переводит политику с меток в правила по IP, а пакеты по ним проверяет ядро.</dd>
-<dt>Что такое overlay network?</dt><dd>Виртуальная сеть Pod поверх сети между Node: пакет Pod заворачивается в пакет Node, чаще всего в формате VXLAN.</dd>
-<dt>Чем Flannel отличается от Calico и Cilium для кластера песочниц?</dt><dd>Flannel даёт только связность и не исполняет NetworkPolicy, а Calico и Cilium исполняют.</dd>
-<dt>Чем закрывается подмена адреса Service на Node?</dt><dd>kube-proxy в режиме iptables (по умолчанию) или nftables, либо Cilium через eBPF вместо kube-proxy.</dd>
-<dt>Что такое режим host-gw во Flannel?</dt><dd>Режим без overlay: Node получает маршруты к подсетям Pod других Node через их реальные адреса, и пакет идёт с адресами Pod без заворачивания.</dd>
-<dt>Когда host-gw не подходит?</dt><dd>Когда Node не в одном сегменте сети: следующий шаг маршрута должен быть доступен напрямую.</dd>
-<dt>За счёт чего Pod одного Node соединены между собой?</dt><dd>Их veth воткнуты в один bridge на Node.</dd>
-<dt>Кто решает, куда отправить пакет в Pod на другом Node?</dt><dd>Ядро Node по таблице маршрутов, а bridge только передаёт кадр по MAC.</dd>
-<dt>Зачем у bridge на Node есть IP-адрес?</dt><dd>Это шлюз Pod: через него пакеты в чужие подсети попадают в ядро Node.</dd>
-<dt>На каком Node происходит DNAT при обращении к Service?</dt><dd>На Node отправителя, сразу при входе пакета в ядро, до выбора маршрута.</dd>
-<dt>Чем DNAT отличается от маршрутизации?</dt><dd>DNAT меняет адрес назначения пакета, а маршрут только выбирает, куда пакет отправить.</dd>
-<dt>Как kube-proxy в режиме iptables выбирает Pod за Service?</dt><dd>Случайно: для каждого Pod есть правило со своей вероятностью.</dd>
-<dt>Что будет, если на Node выключена пересылка пакетов (ip_forward)?</dt><dd>Пакеты в Pod других Node молча отбрасываются на Node отправителя.</dd>
-<dt>Что такое headless Service?</dt><dd>Service без своего адреса: DNS отдаёт адреса Pod напрямую, и kube-proxy в обращении не участвует.</dd>
-<dt>Что такое ipset?</dt><dd>ipset — набор адресов в ядре, на который ссылается правило фильтрации: при смене IP Pod меняется набор, а не правило.</dd>
-<dt>Что такое цепочка в iptables?</dt><dd>Упорядоченный список правил, который ядро проходит для пакета в определённой точке его пути.</dd>
-<dt>Как контроллер политик превращает NetworkPolicy в правила на Node?</dt><dd>Находит IP Pod по меткам из политики, кладёт их в ipset и пишет правило iptables, ссылающееся на этот набор.</dd>
-<dt>Как проверить, что NetworkPolicy действительно работает?</dt><dd>Попробовать соединиться из Pod, которому политика запрещает доступ: то, что kubectl показывает политику, ничего не доказывает.</dd>
-<dt>Кто фильтрует трафик в K3s, если Flannel политик не исполняет?</dt><dd>Встроенный в K3s контроллер политик на основе kube-router.</dd>
-</dl>
+<h2 id="k8s-01-ustroystvo">k8s-01-ustroystvo</h2>
+<details><summary>Что такое Node в k8s?</summary><p>Node — машина кластера, на которой реально запускаются контейнеры.</p></details>
+<details><summary>Что такое Pod?</summary><p>Pod — минимальная единица запуска в k8s: один или несколько контейнеров, которые всегда размещаются на одном Node.</p></details>
+<details><summary>Что общего у контейнеров одного Pod?</summary><p>Сеть, а при желании и тома; файловые системы и процессы по умолчанию раздельные.</p></details>
+<details><summary>Что такое Deployment?</summary><p>Deployment — объект, который держит заданное число копий Pod живыми и пересоздаёт упавшие.</p></details>
+<details><summary>Что такое Job?</summary><p>Job — объект, который запускает Pod до успешного завершения и после этого не перезапускает.</p></details>
+<details><summary>Почему разовую задачу запускают как Job, а не как Deployment?</summary><p>Deployment поднимет завершившийся Pod заново, считая его упавшим, а Job считает завершение результатом.</p></details>
+<details><summary>Что такое kubelet?</summary><p>kubelet — агент на каждом Node, который получает описание Pod и добивается, чтобы его контейнеры работали.</p></details>
+<details><summary>Что такое containerd?</summary><p>containerd — служба на Node, которая управляет контейнерами и для запуска вызывает рантайм вроде runc.</p></details>
+<details><summary>Как Node запускает контейнер Pod?</summary><p>kubelet передаёт его containerd, а тот вызывает рантайм, который применяет механизмы ядра.</p></details>
+<details><summary>Что такое RuntimeClass?</summary><p>RuntimeClass — объект k8s, которым Pod выбирает рантайм на Node, например gVisor вместо runc.</p></details>
+<details><summary>За счёт чего RuntimeClass меняет изоляцию?</summary><p>containerd вызывает другой рантайм, например gVisor вместо runc.</p></details>
+<details><summary>Какой признак, что рантайм из RuntimeClass не установлен на Node?</summary><p>Pod застревает на создании и не стартует.</p></details>
+<details><summary>За счёт чего контейнеры одного Pod делят сеть?</summary><p>Они в одном network namespace, который держит pause container — служебный контейнер Pod.</p></details>
+<details><summary>За счёт чего контейнер Pod не видит файлов Node?</summary><p>mount namespace: видны только файлы образа и смонтированные тома.</p></details>
+<details><summary>За счёт чего контейнер не видит процессов соседних контейнеров?</summary><p>У каждого контейнера свой PID namespace.</p></details>
+<details><summary>Почему платформы песочниц часто запускают контейнеры сами внутри Pod-воркера, а не создают Pod на каждую песочницу?</summary><p>Создание Pod проходит через API, scheduler и kubelet и занимает секунды, а свой рантайм внутри воркера стартует контейнер быстрее.</p></details>
+<details><summary>Что теряет платформа, запуская песочницы внутри Pod-воркера сама?</summary><p>Изоляцию и лимиты k8s для каждой песочницы — их приходится обеспечивать самой платформе через namespaces и cgroups.</p></details>
+<details><summary>Почему Pod-воркер, сам запускающий контейнеры, часто работает в privileged-режиме, то есть со всеми правами root на Node?</summary><p>Создание namespaces и cgroups требует прав, которых обычному контейнеру не дают.</p></details>
+<details><summary>Чем на практике выясняют, почему Pod не стартует?</summary><p>Событиями Pod (events): там видна причина — нехватка ресурсов, ошибка рантайма или убийство по памяти.</p></details>
+<h2 id="k8s-02-resursy">k8s-02-resursy</h2>
+<details><summary>Что такое requests?</summary><p>requests — объём CPU и памяти, который контейнер заявляет как необходимый; scheduler ставит Pod только на Node, где этот объём ещё свободен.</p></details>
+<details><summary>Что такое limits?</summary><p>limits — потолок потребления контейнера, который на Node становится лимитом его cgroup.</p></details>
+<details><summary>За счёт чего работают limits?</summary><p>kubelet создаёт cgroup на Pod и на контейнер и записывает в неё лимиты.</p></details>
+<details><summary>В каких единицах задают CPU?</summary><p>В тысячных долях ядра (millicores): 1000m — одно ядро, 250m — четверть.</p></details>
+<details><summary>Что дают requests по CPU, когда Node загружен?</summary><p>Гарантированную долю: при конкуренции CPU делится между контейнерами пропорционально их requests.</p></details>
+<details><summary>Что делает limit по CPU?</summary><p>Ограничивает процессорное время за короткий период и притормаживает контейнер (throttling), даже если Node простаивает.</p></details>
+<details><summary>Почему контейнер тормозит из-за CPU limit, хотя средняя загрузка ниже лимита?</summary><p>Квота считается за короткие периоды, и многопоточный всплеск выбирает её в начале периода, а остаток периода контейнер стоит.</p></details>
+<details><summary>По какому признаку видно, что CPU limit стоит слишком низко?</summary><p>Растёт счётчик throttling контейнера при невысокой загрузке Node.</p></details>
+<details><summary>Почему превышение CPU limit не убивает контейнер, а превышение memory limit убивает?</summary><p>CPU можно притормозить, а занятую память отобрать нельзя, только убить.</p></details>
+<details><summary>Что означает OOMKilled?</summary><p>OOMKilled — статус контейнера, превысившего memory limit: ядро убило его процессы.</p></details>
+<details><summary>Почему память в requests и limits часто ставят одинаковой?</summary><p>Память нельзя притормозить, и при нехватке на Node первыми убивают тех, кто вышел за свою заявку.</p></details>
+<details><summary>Что будет с Pod без requests?</summary><p>scheduler считает его нулевым, ставит куда угодно, а при нехватке ресурсов его выселяют первым.</p></details>
+<details><summary>Что значит, что сумма limits на Node больше его ресурсов?</summary><p>Node переподписан: это работает, пока все не пришли за ресурсами одновременно, а на пике начинаются throttling и OOMKilled.</p></details>
+<h2 id="k8s-03-set-i-bezopasnost">k8s-03-set-i-bezopasnost</h2>
+<details><summary>Чем Namespace в k8s отличается от namespace в Linux?</summary><p>В k8s это группировка объектов и прав в API, а в Linux — изоляция того, что видит процесс.</p></details>
+<details><summary>Что такое securityContext?</summary><p>securityContext — раздел описания Pod или контейнера, где задаются настройки изоляции процесса: пользователь, capabilities, seccomp.</p></details>
+<details><summary>За счёт чего работает securityContext?</summary><p>Рантайм при запуске применяет к процессу заданного пользователя, capabilities и seccomp.</p></details>
+<details><summary>Что такое ServiceAccount?</summary><p>ServiceAccount — учётная запись, от имени которой Pod обращается к API кластера.</p></details>
+<details><summary>Чем опасен Pod песочницы с настройками по умолчанию с точки зрения API кластера?</summary><p>k8s монтирует в Pod токен его ServiceAccount, и код внутри может обращаться к API с этими правами.</p></details>
+<details><summary>Что такое Service?</summary><p>Service — постоянный адрес и имя для группы Pod, распределяющий обращения между ними.</p></details>
+<details><summary>Зачем Service, если у Pod есть свой адрес?</summary><p>Адрес Pod меняется при каждом пересоздании, а адрес Service остаётся.</p></details>
+<details><summary>Как Pod находит Service по имени?</summary><p>Через DNS кластера, который знает имена всех Service.</p></details>
+<details><summary>За счёт чего работает Service?</summary><p>kube-proxy на каждом Node пишет в ядро правила DNAT, и обращение к адресу Service уходит на адрес одного из Pod.</p></details>
+<details><summary>Что такое CNI plugin?</summary><p>CNI plugin — компонент, который подключает Pod к сети и выдаёт им адреса.</p></details>
+<details><summary>Что такое NetworkPolicy?</summary><p>NetworkPolicy — правила k8s о том, какие Pod с кем могут соединяться.</p></details>
+<details><summary>Что происходит, если NetworkPolicy не задана?</summary><p>Любой Pod может соединиться с любым Pod кластера.</p></details>
+<details><summary>Почему разные Namespace в k8s не изолируют Pod по сети?</summary><p>Это группировка объектов, а сетевую изоляцию даёт только NetworkPolicy.</p></details>
+<details><summary>За счёт чего работает NetworkPolicy?</summary><p>Программа с поддержкой NetworkPolicy на каждом Node превращает её в правила фильтрации ядра.</p></details>
+<details><summary>Почему созданная NetworkPolicy может не работать?</summary><p>В кластере нет программы, которая её исполняет, и API принимает политику без ошибки.</p></details>
+<details><summary>Почему песочница по умолчанию может достучаться до внутренних Service кластера?</summary><p>Без NetworkPolicy любой Pod соединяется с любым Service, а их имена ещё и находятся через DNS.</p></details>
+<details><summary>Чем объект в API k8s отличается от исполнителя?</summary><p>Объект — запись желаемого состояния, исполнитель — программа, которая подгоняет реальность под эту запись.</p></details>
+<details><summary>Почему объект в API может существовать, а поведения нет?</summary><p>API принимает объект без ошибки, даже если исполнителя нет или он сломан, и реальность молча не меняется.</p></details>
+<details><summary>Кому принадлежит адрес Service?</summary><p>В режимах iptables и nftables — никому: он существует только в правилах DNAT на Node.</p></details>
+<details><summary>Есть ли kube-proxy в пути пакета к Service?</summary><p>Нет: он заранее пишет правила в ядро, а подменяет адрес само ядро.</p></details>
+<details><summary>Кто исполняет NetworkPolicy на Node?</summary><p>Программа с поддержкой NetworkPolicy — агент Calico или Cilium либо отдельный контроллер, как в K3s, — переводит политику с меток в правила по IP, а пакеты по ним проверяет ядро.</p></details>
+<details><summary>Что такое overlay network?</summary><p>Виртуальная сеть Pod поверх сети между Node: пакет Pod заворачивается в пакет Node, чаще всего в формате VXLAN.</p></details>
+<details><summary>Чем Flannel отличается от Calico и Cilium для кластера песочниц?</summary><p>Flannel даёт только связность и не исполняет NetworkPolicy, а Calico и Cilium исполняют.</p></details>
+<details><summary>Чем закрывается подмена адреса Service на Node?</summary><p>kube-proxy в режиме iptables (по умолчанию) или nftables, либо Cilium через eBPF вместо kube-proxy.</p></details>
+<details><summary>Что такое режим host-gw во Flannel?</summary><p>Режим без overlay: Node получает маршруты к подсетям Pod других Node через их реальные адреса, и пакет идёт с адресами Pod без заворачивания.</p></details>
+<details><summary>Когда host-gw не подходит?</summary><p>Когда Node не в одном сегменте сети: следующий шаг маршрута должен быть доступен напрямую.</p></details>
+<details><summary>За счёт чего Pod одного Node соединены между собой?</summary><p>Их veth воткнуты в один bridge на Node.</p></details>
+<details><summary>Кто решает, куда отправить пакет в Pod на другом Node?</summary><p>Ядро Node по таблице маршрутов, а bridge только передаёт кадр по MAC.</p></details>
+<details><summary>Зачем у bridge на Node есть IP-адрес?</summary><p>Это шлюз Pod: через него пакеты в чужие подсети попадают в ядро Node.</p></details>
+<details><summary>На каком Node происходит DNAT при обращении к Service?</summary><p>На Node отправителя, сразу при входе пакета в ядро, до выбора маршрута.</p></details>
+<details><summary>Чем DNAT отличается от маршрутизации?</summary><p>DNAT меняет адрес назначения пакета, а маршрут только выбирает, куда пакет отправить.</p></details>
+<details><summary>Как kube-proxy в режиме iptables выбирает Pod за Service?</summary><p>Случайно: для каждого Pod есть правило со своей вероятностью.</p></details>
+<details><summary>Что будет, если на Node выключена пересылка пакетов (ip_forward)?</summary><p>Пакеты в Pod других Node молча отбрасываются на Node отправителя.</p></details>
+<details><summary>Что такое headless Service?</summary><p>Service без своего адреса: DNS отдаёт адреса Pod напрямую, и kube-proxy в обращении не участвует.</p></details>
+<details><summary>Что такое ipset?</summary><p>ipset — набор адресов в ядре, на который ссылается правило фильтрации: при смене IP Pod меняется набор, а не правило.</p></details>
+<details><summary>Что такое цепочка в iptables?</summary><p>Упорядоченный список правил, который ядро проходит для пакета в определённой точке его пути.</p></details>
+<details><summary>Как контроллер политик превращает NetworkPolicy в правила на Node?</summary><p>Находит IP Pod по меткам из политики, кладёт их в ipset и пишет правило iptables, ссылающееся на этот набор.</p></details>
+<details><summary>Как проверить, что NetworkPolicy действительно работает?</summary><p>Попробовать соединиться из Pod, которому политика запрещает доступ: то, что kubectl показывает политику, ничего не доказывает.</p></details>
+<details><summary>Кто фильтрует трафик в K3s, если Flannel политик не исполняет?</summary><p>Встроенный в K3s контроллер политик на основе kube-router.</p></details>
 </body></html>
