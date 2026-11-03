@@ -179,7 +179,7 @@
   function status(stem) {
     var el = document.querySelector('[data-status="' + stem + '"]'); if (!el) return;
     var st = load(stem), t = '';
-    t = st.last ? 'прогон ' + daysAgo(st.last) + ' · не вспомнил ' + st.lastMissed + ' из ' + st.lastTotal : 'ещё не прогонялся';
+    t = st.last ? 'последний прогон: ' + st.last.slice(8, 10) + '.' + st.last.slice(5, 7) + ' (' + daysAgo(st.last) + ') · не вспомнил ' + st.lastMissed + ' из ' + st.lastTotal : 'ещё не прогонялся';
     if (st.run && st.run.pos > 0 && st.run.pos < st.run.order.length) t += ' · не закончен: ' + st.run.pos + ' из ' + st.run.order.length;
     el.textContent = t;
   }
