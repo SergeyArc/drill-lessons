@@ -1,8 +1,10 @@
-<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex, nofollow"><title>Колоды: Evaluation</title><style>:root{--bg:#f6f7f9;--fg:#1b2230;--accent:#1f3864;--muted:#5b6474;--line:#d8dde6;--card:#fff;--chip:#e8ecf2;--chip-fg:#1f3864}@media(prefers-color-scheme:dark){:root{--bg:#12161d;--fg:#e3e7ee;--accent:#91afe3;--muted:#98a1b0;--line:#2c3542;--card:#1a2029;--chip:#243041;--chip-fg:#c5d4f0}}*{box-sizing:border-box}body{font:16px/1.55 -apple-system,"Segoe UI",Roboto,sans-serif;max-width:46rem;margin:0 auto;padding:1.5rem 16px 3rem;background:var(--bg);color:var(--fg)}h1{color:var(--accent);font-size:1.5rem;margin:0 0 .25rem}h2{color:var(--accent);font-size:1.05rem;margin:2rem 0 .75rem;scroll-margin-top:4.5rem}a{color:var(--accent)}.m{color:var(--muted);font-size:.85rem}.toc{position:sticky;top:0;z-index:2;display:flex;flex-wrap:wrap;gap:.4rem;margin:1rem 0 0;padding:.65rem 0 .55rem;background:var(--bg);border-bottom:1px solid var(--line)}.toc a{display:inline-flex;align-items:center;gap:.35rem;padding:.28rem .65rem;border-radius:999px;background:var(--chip);color:var(--chip-fg);text-decoration:none;font-size:.82rem;font-weight:500;line-height:1.3}.toc a:hover{filter:brightness(.96)}.toc .n{opacity:.65;font-variant-numeric:tabular-nums}.cards{display:flex;flex-direction:column;gap:.55rem}details{background:var(--card);border:1px solid var(--line);border-radius:.55rem;padding:.85rem .95rem}summary{cursor:pointer;font-weight:500;list-style:none;display:flex;gap:.55rem;align-items:flex-start;line-height:1.4}summary::-webkit-details-marker{display:none}summary::before{content:"▸";flex:0 0 auto;color:var(--muted);font-size:1rem;line-height:1.35;transition:transform .12s ease}details[open] summary::before{transform:rotate(90deg)}details p{margin:.65rem 0 0;padding:.55rem .7rem;border-left:3px solid var(--line);color:var(--muted);font-weight:400;line-height:1.5}ul{padding-left:1.2rem}</style></head><body>
+<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex, nofollow"><title>Колоды: Evaluation</title><style>:root{--bg:#f6f7f9;--fg:#1b2230;--accent:#1f3864;--muted:#5b6474;--line:#d8dde6;--card:#fff;--chip:#e8ecf2;--chip-fg:#1f3864}@media(prefers-color-scheme:dark){:root{--bg:#12161d;--fg:#e3e7ee;--accent:#91afe3;--muted:#98a1b0;--line:#2c3542;--card:#1a2029;--chip:#243041;--chip-fg:#c5d4f0}}*{box-sizing:border-box}body{font:16px/1.55 -apple-system,"Segoe UI",Roboto,sans-serif;max-width:46rem;margin:0 auto;padding:1.5rem 16px 3rem;background:var(--bg);color:var(--fg)}h1{color:var(--accent);font-size:1.5rem;margin:0 0 .25rem}h2{color:var(--accent);font-size:1.05rem;margin:2rem 0 .75rem;scroll-margin-top:4.5rem}a{color:var(--accent)}.m{color:var(--muted);font-size:.85rem}.toc{position:sticky;top:0;z-index:2;display:flex;flex-wrap:wrap;gap:.4rem;margin:1rem 0 0;padding:.65rem 0 .55rem;background:var(--bg);border-bottom:1px solid var(--line)}.toc a{display:inline-flex;align-items:center;gap:.35rem;padding:.28rem .65rem;border-radius:999px;background:var(--chip);color:var(--chip-fg);text-decoration:none;font-size:.82rem;font-weight:500;line-height:1.3}.toc a:hover{filter:brightness(.96)}.toc .n{opacity:.65;font-variant-numeric:tabular-nums}.cards{display:flex;flex-direction:column;gap:.55rem}details{background:var(--card);border:1px solid var(--line);border-radius:.55rem;padding:.85rem .95rem}summary{cursor:pointer;font-weight:500;list-style:none;display:flex;gap:.55rem;align-items:flex-start;line-height:1.4}summary::-webkit-details-marker{display:none}summary::before{content:"▸";flex:0 0 auto;color:var(--muted);font-size:1rem;line-height:1.35;transition:transform .12s ease}details[open] summary::before{transform:rotate(90deg)}details p{margin:.65rem 0 0;padding:.55rem .7rem;border-left:3px solid var(--line);color:var(--muted);font-weight:400;line-height:1.5}ul{padding-left:1.2rem}.mod{display:flex;flex-wrap:wrap;align-items:center;gap:.4rem .8rem;margin:2rem 0 .75rem}.mod h2{margin:0}.st{flex-basis:100%;color:var(--muted);font-size:.82rem}.btn{font-weight:500;font-size:.9rem;font-family:inherit;padding:.5rem 1rem;border-radius:6px;border:1px solid var(--accent);background:transparent;color:var(--accent);cursor:pointer}.btn.primary{background:var(--accent);color:var(--bg)}.btn.small{font-size:.82rem;padding:.3rem .75rem}.btn.ok{border-color:#2d6a4f;color:#2d6a4f}.btn.no{border-color:#9b2226;color:#9b2226}@media(prefers-color-scheme:dark){.btn.ok{border-color:#74c69d;color:#74c69d}.btn.no{border-color:#f28b82;color:#f28b82}}.row{display:flex;gap:.5rem;flex-wrap:wrap;margin-top:1rem}.run{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:1.1rem;margin-top:1rem}.run-top{display:flex;justify-content:space-between;gap:1rem;font-size:.85rem;color:var(--muted)}.lnk{background:none;border:0;padding:0;color:var(--accent);font:inherit;cursor:pointer;text-decoration:underline}.run-count{display:flex;justify-content:space-between;gap:1rem;margin-top:.8rem;font-size:.85rem;color:var(--muted);font-variant-numeric:tabular-nums}.run-q{font-size:1.15rem;font-weight:600;margin:1rem 0 .2rem}.run-a{margin-top:1rem;padding:.9rem 1rem;background:var(--bg);border-radius:6px}.misses{padding-left:1.2rem}.misses li{margin:.45rem 0}.misses .a{color:var(--muted);font-size:.92rem}</style></head><body>
 <p class="m"><a href="index.html">Все колоды</a> · обновлено 2026-11-03 · 45 карточек</p>
 <h1>Evaluation</h1>
+<p class="m">«Прогнать» — карточки модуля в случайном порядке с закрытым ответом. Прогресс хранится в этом браузере.</p>
+<section id="run" class="run" hidden></section><div id="list">
 <nav class="toc" aria-label="Модули"><a href="#evals-01-error-analysis">01-error-analysis<span class="n">· 16</span></a><a href="#evals-02-judge-i-proverki">02-judge-i-proverki<span class="n">· 14</span></a><a href="#evals-03-nabor-i-agentnye-treysy">03-nabor-i-agentnye-treysy<span class="n">· 15</span></a></nav>
-<h2 id="evals-01-error-analysis">01-error-analysis <span class="m">· 16</span></h2>
+<div class="mod"><h2 id="evals-01-error-analysis">01-error-analysis <span class="m">· 16</span></h2><button class="btn small" data-run="evals-01-error-analysis">Прогнать</button><span class="st" data-status="evals-01-error-analysis"></span></div>
 <div class="cards">
 <details><summary>Что такое error analysis в методологии evals?</summary><p>Чтение реальных трейсов с записью, что именно пошло не так, до выбора каких-либо метрик.</p></details>
 <details><summary>Почему error analysis идёт раньше метрик?</summary><p>Готовые метрики измеряют не те отказы, которые есть в конкретной системе — что измерять, видно только из трейсов.</p></details>
@@ -21,7 +23,7 @@
 <details><summary>Что такое gulf of specification?</summary><p>Разрыв между намерением разработчика и тем, что реально записано в инструкции модели.</p></details>
 <details><summary>Что такое gulf of generalization?</summary><p>Инструкция понята и записана верно, но модель выполняет её нестабильно на разных входах.</p></details>
 </div>
-<h2 id="evals-02-judge-i-proverki">02-judge-i-proverki <span class="m">· 14</span></h2>
+<div class="mod"><h2 id="evals-02-judge-i-proverki">02-judge-i-proverki <span class="m">· 14</span></h2><button class="btn small" data-run="evals-02-judge-i-proverki">Прогнать</button><span class="st" data-status="evals-02-judge-i-proverki"></span></div>
 <div class="cards">
 <details><summary>Почему оценка pass/fail лучше шкалы от 1 до 5?</summary><p>Бинарная граница проверяема и совпадает между людьми, а шкала размывается на «3 или 4» и не говорит, что чинить.</p></details>
 <details><summary>Почему generic-метрики из фреймворков бесполезны?</summary><p>Helpfulness или relevance не привязаны к отказам конкретной системы и не указывают, что именно чинить.</p></details>
@@ -38,7 +40,7 @@
 <details><summary>Чем guardrail отличается от evaluator?</summary><p>Guardrail стоит в пути запроса, быстрый и детерминированный; evaluator работает после и асинхронно, поэтому может быть дорогим.</p></details>
 <details><summary>Почему LLM-judge не ставят в роль guardrail?</summary><p>Он медленный и недетерминированный, а ложное срабатывание в пути запроса — производственный баг.</p></details>
 </div>
-<h2 id="evals-03-nabor-i-agentnye-treysy">03-nabor-i-agentnye-treysy <span class="m">· 15</span></h2>
+<div class="mod"><h2 id="evals-03-nabor-i-agentnye-treysy">03-nabor-i-agentnye-treysy <span class="m">· 15</span></h2><button class="btn small" data-run="evals-03-nabor-i-agentnye-treysy">Прогнать</button><span class="st" data-status="evals-03-nabor-i-agentnye-treysy"></span></div>
 <div class="cards">
 <details><summary>Как получить тестовые запросы до появления реальных данных?</summary><p>Генерацией по измерениям — тип пользователя, намерение, сложность — а не одним промптом «сделай сто запросов».</p></details>
 <details><summary>Почему eval-набор нельзя собирать из удобных примеров?</summary><p>Он должен покрывать категории из failure taxonomy, иначе метрика зелёная, а система ломается на настоящих отказах.</p></details>
@@ -56,4 +58,78 @@
 <details><summary>Чем на практике закрывается сбор трейсов для error analysis?</summary><p>Трассировкой LLM-вызовов через прокси или инструментирование, где трейс содержит вход, вызовы инструментов и выход.</p></details>
 <details><summary>Чем на практике закрывается прогон eval-набора в CI?</summary><p>Тестами в pytest-стиле поверх детерминированной записи LLM-вызовов — без записи метрики шумят.</p></details>
 </div>
-</body></html>
+</div><script>window.DECKS={"evals-01-error-analysis": [["Что такое error analysis в методологии evals?", "Чтение реальных трейсов с записью, что именно пошло не так, до выбора каких-либо метрик."], ["Почему error analysis идёт раньше метрик?", "Готовые метрики измеряют не те отказы, которые есть в конкретной системе — что измерять, видно только из трейсов."], ["Что такое open coding?", "Свободная заметка на каждом трейсе о первом замеченном дефекте, своими словами, без заранее заданных категорий."], ["Что такое axial coding?", "Группировка открытых заметок в небольшой набор повторяющихся категорий отказов."], ["Что такое failure taxonomy?", "Список типов отказов системы с их частотами — итог error analysis, из которого следует что чинить и что измерять."], ["Почему на трейс записывают первый отказ, а не все подряд?", "После первого отказа остальное поведение уже искажено им, и считать дальнейшие дефекты — шум."], ["Что такое насыщение при разметке трейсов?", "Момент, когда новые трейсы перестают давать новые категории отказов — сигнал остановить разметку."], ["Сколько трейсов обычно нужно до насыщения?", "Порядка сотни — категории перестают появляться раньше, чем кажется."], ["Сколько трейсов размечают вручную до подключения агента-помощника?", "Не меньше тридцати: ранние подсказки агента смещают собственное суждение и прячут отказы, зависящие от контекста."], ["Как агент помогает разметке после первых ручных трейсов?", "Ищет в остатке пула трейсы, похожие на описанные отказы, а человек принимает или отвергает каждый — до насыщения."], ["Какие шаги error analysis нельзя отдавать LLM?", "Первичный open coding и ground-truth метки для проверки judge — иначе judge проверяется против собственных ошибок."], ["Почему разметку отказов ведёт один человек, а не комитет?", "Согласование категорий между людьми дороже пользы, а один ответственный даёт консистентную таксономию."], ["Как выбирают трейсы для просмотра из большого потока?", "От случайной выборки к целевой — кластеры, выбросы по длине или числу вызовов, флаги классификатора — оставляя в каждой партии случайную долю."], ["Зачем в каждой партии оставлять случайную долю трейсов?", "Целевые сигналы находят только известные отказы, а случайная доля ловит те, которых в таксономии ещё нет."], ["Что такое gulf of specification?", "Разрыв между намерением разработчика и тем, что реально записано в инструкции модели."], ["Что такое gulf of generalization?", "Инструкция понята и записана верно, но модель выполняет её нестабильно на разных входах."]], "evals-02-judge-i-proverki": [["Почему оценка pass/fail лучше шкалы от 1 до 5?", "Бинарная граница проверяема и совпадает между людьми, а шкала размывается на «3 или 4» и не говорит, что чинить."], ["Почему generic-метрики из фреймворков бесполезны?", "Helpfulness или relevance не привязаны к отказам конкретной системы и не указывают, что именно чинить."], ["Почему автоматическую проверку не пишут до наблюдения отказа?", "Отказы LLM-системы не предугадать, и проверка на воображаемый отказ измеряет то, чего нет."], ["Что такое LLM-as-judge?", "Модель, которая по инструкции выносит вердикт о трейсе другой системы."], ["Почему judge нельзя вводить без проверки на людских метках?", "Он сам LLM-система с систематическими ошибками — без замера согласия его вердикты создают иллюзию измерения."], ["Как проверяют judge?", "Размеченный людьми набор делят: на одной части подбирают промпт judge, на отложенной измеряют согласие."], ["Сколько людских меток нужно на один тип отказа для калибровки judge?", "Порядка 100–200 с обоими классами: малая часть для примеров в промпте, остальное пополам между подбором и отложенным замером."], ["Что такое TPR и TNR judge?", "Доля настоящих pass, которые judge признал pass, и доля настоящих fail, которые он признал fail."], ["Почему одного accuracy judge недостаточно?", "При редких отказах judge, всегда отвечающий pass, имеет высокий accuracy и нулевую пользу."], ["Зачем поправка результата на ошибки judge?", "Сырой процент pass смещён его TPR и TNR — зная их, восстанавливают истинную долю успеха."], ["Почему judge делают узким — один тип отказа на judge?", "Вопрос «хорош ли ответ» не воспроизводится, а judge на один отказ проверяем и калибруем."], ["Когда judge не нужен вообще?", "Когда отказ проверяется кодом — формат, наличие поля, результат исполнения — это дешевле и точнее."], ["Чем guardrail отличается от evaluator?", "Guardrail стоит в пути запроса, быстрый и детерминированный; evaluator работает после и асинхронно, поэтому может быть дорогим."], ["Почему LLM-judge не ставят в роль guardrail?", "Он медленный и недетерминированный, а ложное срабатывание в пути запроса — производственный баг."]], "evals-03-nabor-i-agentnye-treysy": [["Как получить тестовые запросы до появления реальных данных?", "Генерацией по измерениям — тип пользователя, намерение, сложность — а не одним промптом «сделай сто запросов»."], ["Почему eval-набор нельзя собирать из удобных примеров?", "Он должен покрывать категории из failure taxonomy, иначе метрика зелёная, а система ломается на настоящих отказах."], ["Чем capability eval отличается от regression eval?", "Capability проверяет, умеет ли система новое, regression — что починенное не сломалось следующей правкой."], ["Почему eval-набор не статичен?", "Новые отказы из живых трейсов добавляются в него, и набор растёт вместе с таксономией."], ["Как выглядит цикл улучшения на evals?", "Трейсы → error analysis → починка → добавление случая в набор → замер регрессии."], ["Чем offline evals отличаются от мониторинга?", "Offline — фиксированный набор перед выкладкой, мониторинг — judge на выборке живых трейсов, откуда новые отказы уходят в offline-набор."], ["Почему в многошаговом трейсе ищут самый ранний отказ?", "Отказы ниже по трейсу чаще всего следствие раннего, и чинить надо корень."], ["В каком порядке оценивают агентный workflow?", "Сначала end-to-end успех как чёрного ящика, потом пошаговая диагностика тех workflow, которые падают чаще всего."], ["Из каких отдельных проверок состоит тест вызова инструмента?", "Имя инструмента, аргументы, результат вызова и изменение состояния — каждая может упасть независимо от остальных."], ["Что такое transition failure matrix?", "Таблица «шаг до отказа → шаг отказа» по агентским трейсам, показывающая, на каком переходе система ломается чаще всего."], ["Как локализовать отказ в многоходовом трейсе без полного переигрывания?", "Свести к минимальному воспроизводящему кейсу: один ход, а если нужен контекст — реальный префикс без последнего хода."], ["Что такое N-1 testing?", "Прогон реального префикса разговора без последнего хода и проверка того, что система сделает дальше."], ["Чем на практике закрывается просмотр трейсов?", "Своим простым интерфейсом разметки под свои поля и горячие клавиши — готовые SaaS медленнее и не под твою таксономию."], ["Чем на практике закрывается сбор трейсов для error analysis?", "Трассировкой LLM-вызовов через прокси или инструментирование, где трейс содержит вход, вызовы инструментов и выход."], ["Чем на практике закрывается прогон eval-набора в CI?", "Тестами в pytest-стиле поверх детерминированной записи LLM-вызовов — без записи метрики шумят."]]};</script><script>// Прогон модуля на странице колоды. Данные — window.DECKS = { stem: [[q, a], ...] }.
+// Прогресс — в localStorage этого браузера (drill:deck:<stem>); без него прогон работает с нуля.
+(function () {
+  var D = window.DECKS || {};
+  var list = document.getElementById('list'), run = document.getElementById('run');
+  function key(s) { return 'drill:deck:' + s; }
+  function load(s) { try { return JSON.parse(localStorage.getItem(key(s))) || {}; } catch (e) { return {}; } }
+  function save(s, v) { try { localStorage.setItem(key(s), JSON.stringify(v)); } catch (e) {} }
+  function shuffle(a) { for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]; }); }
+  function today() { var d = new Date(); return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
+  function daysAgo(iso) { var n = Math.round((new Date(today()) - new Date(iso)) / 864e5); return n === 0 ? 'сегодня' : n === 1 ? 'вчера' : n + ' дн. назад'; }
+
+  function status(stem) {
+    var el = document.querySelector('[data-status="' + stem + '"]'); if (!el) return;
+    var st = load(stem), t = '';
+    t = st.last ? 'прогон ' + daysAgo(st.last) + ' · не вспомнил ' + st.lastMissed + ' из ' + st.lastTotal : 'ещё не прогонялся';
+    if (st.run && st.run.pos > 0 && st.run.pos < st.run.order.length) t += ' · не закончен: ' + st.run.pos + ' из ' + st.run.order.length;
+    el.textContent = t;
+  }
+
+  function open(stem) { list.hidden = true; run.hidden = false; window.scrollTo(0, 0); show(stem); }
+  function close() { run.hidden = true; list.hidden = false; Object.keys(D).forEach(status); }
+
+  function start(stem, onlyQs) {
+    var cards = D[stem], idx = [];
+    cards.forEach(function (c, i) { if (!onlyQs || onlyQs.indexOf(c[0]) >= 0) idx.push(i); });
+    var st = load(stem);
+    st.run = { n: cards.length, order: shuffle(idx), pos: 0, missed: [], knew: 0, partial: !!onlyQs };
+    save(stem, st); show(stem);
+  }
+
+  function show(stem) {
+    var cards = D[stem], st = load(stem), s = st.run;
+    if (!s || s.n !== cards.length) return start(stem);
+    if (s.pos >= s.order.length) return finish(stem);
+    var c = cards[s.order[s.pos]];
+    run.innerHTML =
+      '<div class="run-top"><button class="lnk" id="back">← К колоде</button><span>' + esc(stem) + '</span></div>' +
+      '<div class="run-count"><span>' + (s.pos + 1) + ' из ' + s.order.length + '</span><span>знал ' + s.knew + ' · не знал ' + s.missed.length + '</span></div>' +
+      '<div class="run-q">' + esc(c[0]) + '</div>' +
+      '<div class="row" id="run-row"><button class="btn primary" id="reveal">Ответил вслух — показать</button></div>';
+    document.getElementById('back').onclick = close;
+    document.getElementById('reveal').onclick = function () {
+      document.getElementById('run-row').outerHTML = '<div class="run-a">' + esc(c[1]) + '</div>' +
+        '<div class="row"><button class="btn ok" id="yes">Знал</button><button class="btn no" id="no">Не знал</button></div>';
+      document.getElementById('yes').onclick = function () { s.knew++; s.pos++; save(stem, st); show(stem); };
+      document.getElementById('no').onclick = function () { s.missed.push(c[0]); s.pos++; save(stem, st); show(stem); };
+    };
+  }
+
+  function finish(stem) {
+    var st = load(stem), s = st.run;
+    if (!s.partial && !s.recorded) { st.last = today(); st.lastMissed = s.missed.length; st.lastTotal = s.order.length; s.recorded = true; save(stem, st); }
+    var h = '<div class="run-top"><button class="lnk" id="back">← К колоде</button><span>' + esc(stem) + '</span></div>' +
+      '<div class="run-count"><span>Готово: ' + s.order.length + '</span><span>знал ' + s.knew + ' · не знал ' + s.missed.length + '</span></div>';
+    if (s.missed.length) {
+      h += '<p>Не вспомнилось:</p><ol class="misses">' + s.missed.map(function (q) {
+        var a = ''; D[stem].forEach(function (c) { if (c[0] === q) a = c[1]; });
+        return '<li>' + esc(q) + '<div class="a">' + esc(a) + '</div></li>'; }).join('') + '</ol>' +
+        '<div class="row"><button class="btn primary" id="again-miss">Ещё раз только эти</button><button class="btn" id="again-all">Весь модуль заново</button></div>';
+    } else {
+      h += '<p>Все вспомнились.</p><div class="row"><button class="btn" id="again-all">Весь модуль заново</button></div>';
+    }
+    run.innerHTML = h;
+    document.getElementById('back').onclick = close;
+    var m = document.getElementById('again-miss');
+    if (m) { var qs = s.missed.slice(); m.onclick = function () { start(stem, qs); }; }
+    document.getElementById('again-all').onclick = function () { start(stem); };
+  }
+
+  document.querySelectorAll('button[data-run]').forEach(function (b) { b.onclick = function () { open(b.dataset.run); }; });
+  Object.keys(D).forEach(status);
+})();
+</script></body></html>
