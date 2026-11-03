@@ -1,7 +1,9 @@
-<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex, nofollow"><title>Колоды: Инференс</title><style>body{font:16px/1.55 -apple-system,"Segoe UI",Roboto,sans-serif;max-width:46rem;margin:0 auto;padding:1.5rem 16px;background:#f6f7f9;color:#1b2230}h1{color:#1f3864;font-size:1.5rem}h2{color:#1f3864;font-size:1.1rem;margin-top:2rem}a{color:#1f3864}details{border-bottom:1px solid #d8dde6;padding:.55rem 0}summary{cursor:pointer;font-weight:600}details p{margin:.4rem 0 .2rem;padding-left:1rem}.m{color:#5b6474;font-size:.85rem}@media(prefers-color-scheme:dark){body{background:#12161d;color:#e3e7ee}h1,h2,a{color:#91afe3}details{border-color:#2c3542}.m{color:#98a1b0}}</style></head><body>
+<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex, nofollow"><title>Колоды: Инференс</title><style>:root{--bg:#f6f7f9;--fg:#1b2230;--accent:#1f3864;--muted:#5b6474;--line:#d8dde6;--card:#fff;--chip:#e8ecf2;--chip-fg:#1f3864}@media(prefers-color-scheme:dark){:root{--bg:#12161d;--fg:#e3e7ee;--accent:#91afe3;--muted:#98a1b0;--line:#2c3542;--card:#1a2029;--chip:#243041;--chip-fg:#c5d4f0}}*{box-sizing:border-box}body{font:16px/1.55 -apple-system,"Segoe UI",Roboto,sans-serif;max-width:46rem;margin:0 auto;padding:1.5rem 16px 3rem;background:var(--bg);color:var(--fg)}h1{color:var(--accent);font-size:1.5rem;margin:0 0 .25rem}h2{color:var(--accent);font-size:1.05rem;margin:2rem 0 .75rem;scroll-margin-top:4.5rem}a{color:var(--accent)}.m{color:var(--muted);font-size:.85rem}.toc{position:sticky;top:0;z-index:2;display:flex;flex-wrap:wrap;gap:.4rem;margin:1rem 0 0;padding:.65rem 0 .55rem;background:var(--bg);border-bottom:1px solid var(--line)}.toc a{display:inline-flex;align-items:center;gap:.35rem;padding:.28rem .65rem;border-radius:999px;background:var(--chip);color:var(--chip-fg);text-decoration:none;font-size:.82rem;font-weight:500;line-height:1.3}.toc a:hover{filter:brightness(.96)}.toc .n{opacity:.65;font-variant-numeric:tabular-nums}.cards{display:flex;flex-direction:column;gap:.55rem}details{background:var(--card);border:1px solid var(--line);border-radius:.55rem;padding:.85rem .95rem}summary{cursor:pointer;font-weight:500;list-style:none;display:flex;gap:.55rem;align-items:flex-start;line-height:1.4}summary::-webkit-details-marker{display:none}summary::before{content:"▸";flex:0 0 auto;color:var(--muted);font-size:1rem;line-height:1.35;transition:transform .12s ease}details[open] summary::before{transform:rotate(90deg)}details p{margin:.65rem 0 0;padding:.55rem .7rem;border-left:3px solid var(--line);color:var(--muted);font-weight:400;line-height:1.5}ul{padding-left:1.2rem}</style></head><body>
 <p class="m"><a href="index.html">Все колоды</a> · обновлено 2026-11-03 · 120 карточек</p>
 <h1>Инференс</h1>
-<h2 id="inf-00-bazovyy-inference">inf-00-bazovyy-inference</h2>
+<nav class="toc" aria-label="Модули"><a href="#inf-00-bazovyy-inference">00-bazovyy-inference<span class="n">· 25</span></a><a href="#inf-01-attention-i-kontekst">01-attention-i-kontekst<span class="n">· 4</span></a><a href="#inf-02-stoimost-prefilla">02-stoimost-prefilla<span class="n">· 11</span></a><a href="#inf-03-kesh-i-vytesnenie">03-kesh-i-vytesnenie<span class="n">· 7</span></a><a href="#inf-04-routing-i-instansy">04-routing-i-instansy<span class="n">· 10</span></a><a href="#inf-05-planirovanie-resursov">05-planirovanie-resursov<span class="n">· 5</span></a><a href="#inf-06-agentskaya-nagruzka">06-agentskaya-nagruzka<span class="n">· 8</span></a><a href="#inf-07-agentskiy-profil">07-agentskiy-profil<span class="n">· 4</span></a><a href="#inf-08-sloi-optimizatsii">08-sloi-optimizatsii<span class="n">· 4</span></a><a href="#inf-09-zaderzhki-i-tp">09-zaderzhki-i-tp<span class="n">· 8</span></a><a href="#inf-10-pd-razdelenie">10-pd-razdelenie<span class="n">· 15</span></a><a href="#inf-11-kesh-vne-gpu">11-kesh-vne-gpu<span class="n">· 6</span></a><a href="#inf-12-svoystva-agentskoy-nagruzki">12-svoystva-agentskoy-nagruzki<span class="n">· 13</span></a></nav>
+<h2 id="inf-00-bazovyy-inference">00-bazovyy-inference <span class="m">· 25</span></h2>
+<div class="cards">
 <details><summary>Что такое forward pass при генерации?</summary><p>Один проход входа через все слои модели, на выходе — вероятности следующего токена.</p></details>
 <details><summary>Сколько forward pass нужно, чтобы сгенерировать ответ из N токенов?</summary><p>N — каждый токен требует отдельного прохода, потому что зависит от предыдущего.</p></details>
 <details><summary>Что такое prefill?</summary><p>Первый проход по всему промпту целиком, до появления первого сгенерированного токена.</p></details>
@@ -27,12 +29,16 @@
 <details><summary>Прогоны с temperature 0 на одном промпте дают разные ответы — это баг контура сбора?</summary><p>Нет, штатное поведение движка: результат зависит от состава батча, побитовой воспроизводимости у живого inference нет — воспроизводимость обеспечивают записью, а не повтором.</p></details>
 <details><summary>Что такое constrained decoding?</summary><p>Движок на каждом шаге генерации вычёркивает из кандидатов токены, ломающие требуемый формат, поэтому вывод (JSON по схеме, вызов реального инструмента) валиден по построению.</p></details>
 <details><summary>Что предотвращает constrained decoding?</summary><p>Ретраи и вызовы несуществующих инструментов: валидация после генерации ловит ошибку постфактум ценой повторного запроса, а вычёркивание не даёт ей случиться.</p></details>
-<h2 id="inf-01-attention-i-kontekst">inf-01-attention-i-kontekst</h2>
+</div>
+<h2 id="inf-01-attention-i-kontekst">01-attention-i-kontekst <span class="m">· 4</span></h2>
+<div class="cards">
 <details><summary>Что такое контекст в inference?</summary><p>Вся последовательность токенов в текущем запросе: промпт плюс всё сгенерированное к этому моменту.</p></details>
 <details><summary>Что такое attention?</summary><p>Механизм, в котором обработка каждого токена учитывает все предыдущие токены контекста.</p></details>
 <details><summary>Что такое SWA (sliding window attention)?</summary><p>Слой, где токен смотрит только на окно последних токенов, а не на весь контекст.</p></details>
 <details><summary>Что такое context parallelism?</summary><p>Разрезание одного длинного контекста между несколькими GPU, в отличие от tensor parallelism, где режется сама модель.</p></details>
-<h2 id="inf-02-stoimost-prefilla">inf-02-stoimost-prefilla</h2>
+</div>
+<h2 id="inf-02-stoimost-prefilla">02-stoimost-prefilla <span class="m">· 11</span></h2>
+<div class="cards">
 <details><summary>Как меняется скорость prefill при росте длины промпта?</summary><p>На коротких промптах почти не меняется, на длинных падает.</p></details>
 <details><summary>Почему длинный промпт дорог и по вычислениям, и по памяти?</summary><p>Attention сравнивает каждый токен со всеми предыдущими, и число пар растёт быстрее длины промпта.</p></details>
 <details><summary>Почему скорость префилла берут на полной длине контекста, а не на длине холодной части?</summary><p>Новые токены смотрят на весь контекст, включая закешированный, поэтому стоимость токена задаёт полная длина.</p></details>
@@ -44,7 +50,9 @@
 <details><summary>Что определяет стоимость prefill на шаге агента, когда история почти вся в кеше?</summary><p>Число новых токенов, умноженное на полную длину контекста: считаются только новые, но каждый смотрит на всю историю.</p></details>
 <details><summary>Почему стоимость prefill на шаг агента растёт, даже если новых токенов на каждом шаге одинаково и кеш работает?</summary><p>Каждый новый токен смотрит на всю историю, а она удлиняется, поэтому стоимость шага растёт примерно линейно с её длиной.</p></details>
 <details><summary>Что в стоимости prefill задаёт холодная часть, а что — полная длина контекста?</summary><p>Холодная часть — сколько токенов считать, полная длина — сколько стоит каждый из них, потому что каждый смотрит на весь контекст.</p></details>
-<h2 id="inf-03-kesh-i-vytesnenie">inf-03-kesh-i-vytesnenie</h2>
+</div>
+<h2 id="inf-03-kesh-i-vytesnenie">03-kesh-i-vytesnenie <span class="m">· 7</span></h2>
+<div class="cards">
 <details><summary>Что значит эксклюзивность KV-кеша?</summary><p>Кеш принадлежит одному инстансу, и запрос либо идёт туда, либо считает контекст заново.</p></details>
 <details><summary>Какой выбор навязывает эксклюзивность кеша роутеру?</summary><p>Между перегрузкой инстанса, где лежит кеш, и пересчётом контекста на свободном.</p></details>
 <details><summary>Что даёт вынос KV-кеша в общее хранилище (L3)?</summary><p>Расцепляет выбор инстанса по нагрузке и выбор по попаданию в кеш.</p></details>
@@ -52,7 +60,9 @@
 <details><summary>Что такое PagedAttention?</summary><p>Хранение KV-cache небольшими блоками с таблицей соответствия вместо сплошного куска — как виртуальная память процесса.</p></details>
 <details><summary>Что предотвращает PagedAttention?</summary><p>Фрагментацию памяти GPU: без него под каждый запрос резервируется непрерывный кусок на максимальную длину ответа, и память кончается раньше, чем реально заполнена.</p></details>
 <details><summary>Почему continuous batching и paged KV-cache применяются только вместе?</summary><p>Батчинг требует свободно впускать и выпускать запросы, а без страничной памяти новому запросу нужен непрерывный кусок худшего случая, которого после фрагментации нет.</p></details>
-<h2 id="inf-04-routing-i-instansy">inf-04-routing-i-instansy</h2>
+</div>
+<h2 id="inf-04-routing-i-instansy">04-routing-i-instansy <span class="m">· 10</span></h2>
+<div class="cards">
 <details><summary>Чем обычный балансировщик перед несколькими инстансами движка плох для агентской нагрузки?</summary><p>Он не знает, где лежит KV-cache префикса, и раскидывает шаги одной сессии по разным инстансам.</p></details>
 <details><summary>Что такое KV-aware routing?</summary><p>Маршрутизация запроса на инстанс, где уже лежит KV-cache его префикса.</p></details>
 <details><summary>Почему KV-aware routing называют дешёвой оптимизацией?</summary><p>Роутер только выбирает инстанс и не перемещает кеш по сети, поэтому быстрая сеть между GPU не нужна.</p></details>
@@ -63,13 +73,17 @@
 <details><summary>Почему общее хранилище кеша не делает инстансы равноценными?</summary><p>Локальный кеш в памяти GPU достаётся сразу, а из хранилища его надо прочитать, передать и разместить, заняв там ёмкость, которой лишаются активные запросы.</p></details>
 <details><summary>Почему выбор инстанса делает роутер, а состав батча — сам движок, а не одна общая логика?</summary><p>Выбор инстанса делается раз на запрос и терпит глобальную, чуть устаревшую картину, а батч пересобирается каждый шаг decode по точному состоянию локального KV-пула — решение снаружи означало бы сетевой запрос на каждом шаге.</p></details>
 <details><summary>Как роутить по кешу, не перегружая инстанс, где лежит популярный префикс?</summary><p>Префикс закрепляется за двумя инстансами-кандидатами: пока первый не вышел за порог загрузки — запрос идёт в его кеш, вышел — на второго, где кеш наработается.</p></details>
-<h2 id="inf-05-planirovanie-resursov">inf-05-planirovanie-resursov</h2>
+</div>
+<h2 id="inf-05-planirovanie-resursov">05-planirovanie-resursov <span class="m">· 5</span></h2>
+<div class="cards">
 <details><summary>Что такое bytes/token при планировании inference?</summary><p>Сколько памяти KV-cache занимает один токен контекста в данной модели.</p></details>
 <details><summary>Как оценить, сколько одновременных запросов держит одна карта?</summary><p>Бюджет памяти под KV разделить на произведение bytes/token и ожидаемой длины контекста.</p></details>
 <details><summary>Почему расчёт памяти по bytes/token — только нижняя граница?</summary><p>Реализация движка добавляет расход, которого нет в формуле, и расхождение с замером бывает кратным.</p></details>
 <details><summary>Почему prefill и decode оценивают и конфигурируют отдельно?</summary><p>У них разные узкие места и разный профиль занятости памяти, поэтому усреднённая конфигурация проигрывает обоим.</p></details>
 <details><summary>Почему bytes/token у разных моделей различается в разы?</summary><p>Из-за архитектуры attention: в GQA группы голов делят одни K/V, в MLA кеш хранится в сжатом виде, поэтому KV на токен меньше, чем у классического multi-head.</p></details>
-<h2 id="inf-06-agentskaya-nagruzka">inf-06-agentskaya-nagruzka</h2>
+</div>
+<h2 id="inf-06-agentskaya-nagruzka">06-agentskaya-nagruzka <span class="m">· 8</span></h2>
+<div class="cards">
 <details><summary>Почему пропускную способность под агентскую нагрузку меряют сессиями, а не запросами?</summary><p>Запросы одной сессии делят префикс и идут с паузами, и замер на независимых запросах даёт завышенный результат.</p></details>
 <details><summary>Зачем замер прогревают до середины сессии, а не начинают с пустого кеша?</summary><p>Иначе меряется переходный режим, а не установившийся, в котором система реально работает.</p></details>
 <details><summary>Почему поток агентских запросов нельзя моделировать пуассоновским?</summary><p>Прибытия коррелированы: сабагенты и ретраи идут пачками, поэтому очереди хуже предсказания по среднему.</p></details>
@@ -78,17 +92,23 @@
 <details><summary>Чем закрывается замер производительности под агентскую нагрузку на практике?</summary><p>Фреймворком вроде AgentX от SemiAnalysis: он гоняет трейсы реальных сессий Claude Code по сессиям, с прогревом до середины сессии и гарантией задержки внутри замера.</p></details>
 <details><summary>Что такое goodput?</summary><p>Пропускная способность, в которую засчитываются только запросы, уложившиеся в гарантию задержки.</p></details>
 <details><summary>Почему замер пропускной способности на коротких запросах завышает скорость сбора multi-turn роллаутов?</summary><p>В замере каждый новый токен смотрит на короткий контекст, а на поздних шагах роллаута — на десятки тысяч токенов истории, поэтому та же порция новых токенов стоит в разы дороже.</p></details>
-<h2 id="inf-07-agentskiy-profil">inf-07-agentskiy-profil</h2>
+</div>
+<h2 id="inf-07-agentskiy-profil">07-agentskiy-profil <span class="m">· 4</span></h2>
+<div class="cards">
 <details><summary>Чем агентский профиль нагрузки отличается от reasoning по составу работы?</summary><p>В reasoning один длинный decode после короткого prefill, а в агентском после каждого вызова инструмента снова идёт prefill по выросшему контексту.</p></details>
 <details><summary>Почему ускорение самых длинных роллаутов ценнее ускорения среднего?</summary><p>Шаг сбора заканчивается по самому длинному роллауту, и средняя скорость на его длительность не влияет.</p></details>
 <details><summary>Почему ёмкость под decode может падать при разрезании модели между картами?</summary><p>Если часть кеша разделить между картами нельзя, каждая держит полную копию, и ёмкость падает во столько раз, сколько карт.</p></details>
 <details><summary>Чем ускоряют генерацию, не меняя контур сбора?</summary><p>Выбором модели, умеющей выдавать несколько токенов за проход, — это свойство модели, а не настройка движка.</p></details>
-<h2 id="inf-08-sloi-optimizatsii">inf-08-sloi-optimizatsii</h2>
+</div>
+<h2 id="inf-08-sloi-optimizatsii">08-sloi-optimizatsii <span class="m">· 4</span></h2>
+<div class="cards">
 <details><summary>Из каких трёх уровней состоит стек inference?</summary><p>Железо с низкоуровневым ПО, рантайм (реализации операций на GPU и движки вроде vLLM) и системный дизайн (роутинг, планирование, работа с KV-кешем).</p></details>
 <details><summary>Почему запас производительности inference ищут сначала на уровне системного дизайна?</summary><p>Нижние уровни сообщество оптимизирует годами, а для системного дизайна оно даёт только готовые компоненты, и как их собрать, зависит от твоего трафика и инфраструктуры.</p></details>
 <details><summary>Когда оправдано самим писать кернелы — реализации операций модели на GPU?</summary><p>Когда архитектура модели или работа с кешем нестандартные либо выигрыш нужен раньше, чем его добавят в открытые движки.</p></details>
 <details><summary>С чего начинают поиск запаса производительности на уровне системного дизайна?</summary><p>С анализа своего трафика: соотношение prefill и decode, доля общего префикса и cache hit rate показывают, какой компонент нужен.</p></details>
-<h2 id="inf-09-zaderzhki-i-tp">inf-09-zaderzhki-i-tp</h2>
+</div>
+<h2 id="inf-09-zaderzhki-i-tp">09-zaderzhki-i-tp <span class="m">· 8</span></h2>
+<div class="cards">
 <details><summary>Что такое TTFT?</summary><p>Время от отправки запроса до первого токена ответа.</p></details>
 <details><summary>Из чего складывается TTFT под нагрузкой?</summary><p>Из ожидания в очереди и времени prefill, а при всплеске запросов растёт именно ожидание.</p></details>
 <details><summary>Что такое TPOT?</summary><p>Среднее время между соседними токенами ответа после первого, то есть темп decode.</p></details>
@@ -97,7 +117,9 @@
 <details><summary>Зачем включать tensor parallelism на модели, которая помещается в одну GPU?</summary><p>Prefill упирается в вычисления и на двух картах идёт почти вдвое быстрее, поэтому очередь короче и при том же SLA проходит больше трафика.</p></details>
 <details><summary>Почему tensor parallelism держат внутри одного сервера?</summary><p>Карты обмениваются результатами после каждого слоя, и это терпимо только по NVLink — прямой связи GPU внутри сервера, а по сети между серверами обмен съедает выигрыш.</p></details>
 <details><summary>Почему занятость KV-кеша в процентах не годится как сигнал тревоги?</summary><p>Она подтверждает уже начавшийся инцидент, а не предупреждает — опережение дают рост очереди и запас памяти, выраженный временем до заполнения.</p></details>
-<h2 id="inf-10-pd-razdelenie">inf-10-pd-razdelenie</h2>
+</div>
+<h2 id="inf-10-pd-razdelenie">10-pd-razdelenie <span class="m">· 15</span></h2>
+<div class="cards">
 <details><summary>Как prefill мешает decode на одной GPU?</summary><p>Длинный prefill занимает карту на секунды, и все идущие генерации на это время останавливаются.</p></details>
 <details><summary>Что такое разделение prefill и decode (P/D-дизагрегация)?</summary><p>Prefill и decode одного запроса выполняются на разных пулах GPU, каждый со своей конфигурацией.</p></details>
 <details><summary>Чем платят за разделение prefill и decode?</summary><p>Передачей KV-кеша из prefill-пула в decode-пул после каждого prefill, для чего нужна быстрая сеть между пулами.</p></details>
@@ -113,14 +135,18 @@
 <details><summary>Почему chunked prefill особенно нужен при агентской нагрузке?</summary><p>Короткие шаги с почти готовым кешем ждут, пока считается чужой длинный промпт, а нарезка пускает их между его кусками.</p></details>
 <details><summary>Чем платят за жёсткий порог на число prefill-токенов одного запроса в chunked prefill?</summary><p>Ростом TTFT у длинных запросов: их prefill растягивается на большее число шагов, зато короткие проходят быстрее.</p></details>
 <details><summary>Когда хватает реплик движка с cache-aware балансировщиком, а когда нужен оркестратор вроде Dynamo?</summary><p>Пока каждая реплика держит модель целиком и фазы не разнесены — хватает роутера перед репликами; оркестратор нужен при модели на несколько узлов или P/D-пулах с передачей кеша по быстрой сети.</p></details>
-<h2 id="inf-11-kesh-vne-gpu">inf-11-kesh-vne-gpu</h2>
+</div>
+<h2 id="inf-11-kesh-vne-gpu">11-kesh-vne-gpu <span class="m">· 6</span></h2>
+<div class="cards">
 <details><summary>Что хранит роутер, который направляет запросы по кешу?</summary><p>Не сам KV-кеш, а индекс «префикс → инстанс», тогда как кеш лежит в памяти воркеров.</p></details>
 <details><summary>По какому признаку видно, что индекс роутера устарел?</summary><p>Растёт доля промахов среди запросов, которые роутер отправил на инстанс как попадание: кеш там уже вытеснен, а индекс об этом не знает.</p></details>
 <details><summary>Как устроена иерархия хранения KV-кеша вне GPU?</summary><p>GPU → память CPU → локальный диск → удалённое хранилище: чем дальше от GPU, тем дешевле хранить и тем дольше возвращать.</p></details>
 <details><summary>Из каких трёх вариантов выбирает роутер для запроса с длинным контекстом?</summary><p>Попадание в кеш на самом инстансе, подгрузка кеша из внешнего слоя или полный prefill — побеждает меньшее суммарное время с учётом очереди.</p></details>
 <details><summary>Чем закрывается выгрузка KV-кеша из GPU во внешние слои на практике?</summary><p>Отдельным слоем кеша вроде LMCache, который выгружает кеш в память CPU, на диск или в удалённое хранилище и подгружает обратно по индексу.</p></details>
 <details><summary>Как индекс роутера остаётся актуальным, а не только детектится как устаревший?</summary><p>Воркер сам сообщает роутеру о вытеснении префикса, не дожидаясь, пока роутер увидит рост промахов.</p></details>
-<h2 id="inf-12-svoystva-agentskoy-nagruzki">inf-12-svoystva-agentskoy-nagruzki</h2>
+</div>
+<h2 id="inf-12-svoystva-agentskoy-nagruzki">12-svoystva-agentskoy-nagruzki <span class="m">· 13</span></h2>
+<div class="cards">
 <details><summary>Какое допущение inference-движка ломает агентская нагрузка?</summary><p>Движок рассчитан на короткие, независимые и непрерывные запросы, а агентский запрос длинный, зависит от предыдущего через общий префикс и прерывается паузами на вызовы инструментов.</p></details>
 <details><summary>Чем агентская нагрузка отличается от чатовой?</summary><p>Контекст растёт и повторяется между шагами, между шагами есть паузы, а запуски сабагентов дают всплески.</p></details>
 <details><summary>Почему в агентской сессии потеря локальности KV-кеша дорожает с каждым шагом?</summary><p>Промах означает пересчёт всего префикса сессии, а префикс растёт с каждым шагом, и стоимость prefill растёт быстрее его длины.</p></details>
@@ -134,4 +160,5 @@
 <details><summary>Почему для агентской нагрузки большой батч не всегда выигрыш?</summary><p>Он растит пропускную способность кластера, но замедляет время на токен, а оно умножается на число шагов цикла.</p></details>
 <details><summary>Что такое speculative decoding?</summary><p>Быстрый черновой механизм предлагает несколько следующих токенов, основная модель проверяет их за один проход и принимает совпавшие, поэтому за проход выходит больше одного токена, а результат не меняется.</p></details>
 <details><summary>Почему пулам prefill и decode при разделении дают разный параллелизм?</summary><p>Prefill упирается в вычисления, и tensor parallelism почти вдвое его ускоряет, а на decode разрезание модели может срезать ёмкость KV-пула, если часть кеша не делится между картами.</p></details>
+</div>
 </body></html>

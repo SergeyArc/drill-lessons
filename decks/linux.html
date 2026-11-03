@@ -1,7 +1,9 @@
-<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex, nofollow"><title>Колоды: Linux-изоляция</title><style>body{font:16px/1.55 -apple-system,"Segoe UI",Roboto,sans-serif;max-width:46rem;margin:0 auto;padding:1.5rem 16px;background:#f6f7f9;color:#1b2230}h1{color:#1f3864;font-size:1.5rem}h2{color:#1f3864;font-size:1.1rem;margin-top:2rem}a{color:#1f3864}details{border-bottom:1px solid #d8dde6;padding:.55rem 0}summary{cursor:pointer;font-weight:600}details p{margin:.4rem 0 .2rem;padding-left:1rem}.m{color:#5b6474;font-size:.85rem}@media(prefers-color-scheme:dark){body{background:#12161d;color:#e3e7ee}h1,h2,a{color:#91afe3}details{border-color:#2c3542}.m{color:#98a1b0}}</style></head><body>
+<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex, nofollow"><title>Колоды: Linux-изоляция</title><style>:root{--bg:#f6f7f9;--fg:#1b2230;--accent:#1f3864;--muted:#5b6474;--line:#d8dde6;--card:#fff;--chip:#e8ecf2;--chip-fg:#1f3864}@media(prefers-color-scheme:dark){:root{--bg:#12161d;--fg:#e3e7ee;--accent:#91afe3;--muted:#98a1b0;--line:#2c3542;--card:#1a2029;--chip:#243041;--chip-fg:#c5d4f0}}*{box-sizing:border-box}body{font:16px/1.55 -apple-system,"Segoe UI",Roboto,sans-serif;max-width:46rem;margin:0 auto;padding:1.5rem 16px 3rem;background:var(--bg);color:var(--fg)}h1{color:var(--accent);font-size:1.5rem;margin:0 0 .25rem}h2{color:var(--accent);font-size:1.05rem;margin:2rem 0 .75rem;scroll-margin-top:4.5rem}a{color:var(--accent)}.m{color:var(--muted);font-size:.85rem}.toc{position:sticky;top:0;z-index:2;display:flex;flex-wrap:wrap;gap:.4rem;margin:1rem 0 0;padding:.65rem 0 .55rem;background:var(--bg);border-bottom:1px solid var(--line)}.toc a{display:inline-flex;align-items:center;gap:.35rem;padding:.28rem .65rem;border-radius:999px;background:var(--chip);color:var(--chip-fg);text-decoration:none;font-size:.82rem;font-weight:500;line-height:1.3}.toc a:hover{filter:brightness(.96)}.toc .n{opacity:.65;font-variant-numeric:tabular-nums}.cards{display:flex;flex-direction:column;gap:.55rem}details{background:var(--card);border:1px solid var(--line);border-radius:.55rem;padding:.85rem .95rem}summary{cursor:pointer;font-weight:500;list-style:none;display:flex;gap:.55rem;align-items:flex-start;line-height:1.4}summary::-webkit-details-marker{display:none}summary::before{content:"▸";flex:0 0 auto;color:var(--muted);font-size:1rem;line-height:1.35;transition:transform .12s ease}details[open] summary::before{transform:rotate(90deg)}details p{margin:.65rem 0 0;padding:.55rem .7rem;border-left:3px solid var(--line);color:var(--muted);font-weight:400;line-height:1.5}ul{padding-left:1.2rem}</style></head><body>
 <p class="m"><a href="index.html">Все колоды</a> · обновлено 2026-11-03 · 102 карточек</p>
 <h1>Linux-изоляция</h1>
-<h2 id="linux-01-namespaces">linux-01-namespaces</h2>
+<nav class="toc" aria-label="Модули"><a href="#linux-01-namespaces">01-namespaces<span class="n">· 23</span></a><a href="#linux-02-cgroups-i-limity">02-cgroups-i-limity<span class="n">· 16</span></a><a href="#linux-03-capabilities-i-seccomp">03-capabilities-i-seccomp<span class="n">· 18</span></a><a href="#linux-04-set-izolyatsii">04-set-izolyatsii<span class="n">· 26</span></a><a href="#linux-05-runtaymy">05-runtaymy<span class="n">· 19</span></a></nav>
+<h2 id="linux-01-namespaces">01-namespaces <span class="m">· 23</span></h2>
+<div class="cards">
 <details><summary>Что такое namespace в Linux?</summary><p>Механизм ядра, который даёт процессу изолированный вид на один системный ресурс.</p></details>
 <details><summary>Почему изоляция разбита на несколько независимых namespaces, а не сделана одним переключателем?</summary><p>Каждый namespace включается отдельно, и среде дают ровно те, что нужны, не отбирая остального.</p></details>
 <details><summary>Что изолирует mount namespace?</summary><p>Карту файловой системы: какие пути для процесса существуют, а каких нет.</p></details>
@@ -25,7 +27,9 @@
 <details><summary>Чем на практике проверяют, в каких namespaces реально работает процесс?</summary><p>Ссылками в /proc/&lt;pid&gt;/ns — у изолированного процесса они отличаются от хостовых.</p></details>
 <details><summary>Чем проверяют, что среда действительно осталась без внешней сети?</summary><p>Попыткой соединения изнутри самой среды — чтения конфигурации недостаточно.</p></details>
 <details><summary>Чем смотрят, не остались ли висеть namespaces после остановки сред?</summary><p>Перечислением namespaces на хосте и сверкой их числа с числом живых сред.</p></details>
-<h2 id="linux-02-cgroups-i-limity">linux-02-cgroups-i-limity</h2>
+</div>
+<h2 id="linux-02-cgroups-i-limity">02-cgroups-i-limity <span class="m">· 16</span></h2>
+<div class="cards">
 <details><summary>Что такое cgroup?</summary><p>cgroup (control group) — механизм ядра, ограничивающий потребление ресурсов группой процессов.</p></details>
 <details><summary>Чем cgroup отличается от namespace по назначению?</summary><p>Namespace решает, что процесс видит, cgroup — сколько он может потребить.</p></details>
 <details><summary>Почему namespaces не защищают от захвата ресурсов?</summary><p>Скрытый ресурс всё равно расходуется: процесс не видит соседей, но занимает их процессор и память.</p></details>
@@ -42,7 +46,9 @@
 <details><summary>Какой признак того, что уборка после остановки среды не отработала?</summary><p>Оставшиеся cgroups с живыми процессами, продолжающими потреблять ресурсы.</p></details>
 <details><summary>Чем на практике проверяют фактические лимиты процесса?</summary><p>Чтением файлов его cgroup в /sys/fs/cgroup — заявленное при запуске может не примениться.</p></details>
 <details><summary>Чем проверяют, что memory limit действительно срабатывает?</summary><p>Управляемым ростом потребления на стенде и проверкой, что OOM kill пришёлся именно на процессы среды.</p></details>
-<h2 id="linux-03-capabilities-i-seccomp">linux-03-capabilities-i-seccomp</h2>
+</div>
+<h2 id="linux-03-capabilities-i-seccomp">03-capabilities-i-seccomp <span class="m">· 18</span></h2>
+<div class="cards">
 <details><summary>Что такое capabilities?</summary><p>capabilities — разбиение привилегий root на отдельные права, выдаваемые и отзываемые по одному.</p></details>
 <details><summary>Зачем привилегии root понадобилось разбивать на capabilities?</summary><p>Бинарная модель слишком груба: процессу нужна одна привилегия, а получал он сразу все.</p></details>
 <details><summary>Почему процесс с пустым набором capabilities безопаснее обычного пользователя?</summary><p>Он лишён привилегированных операций ядра, даже будучи авторизован как root.</p></details>
@@ -61,7 +67,9 @@
 <details><summary>Чем на практике смотрят действующий набор capabilities процесса?</summary><p>Полями Cap* в /proc/&lt;pid&gt;/status — там видно, что реально осталось после запуска.</p></details>
 <details><summary>Чем проверяют, что seccomp вообще применён к процессу?</summary><p>Полем Seccomp в том же /proc/&lt;pid&gt;/status: в нём отражён режим фильтрации.</p></details>
 <details><summary>Чем проверяют, что ограничение работает, а не только объявлено?</summary><p>Контрольным опытом изнутри среды: запрещённая операция обязана отказать.</p></details>
-<h2 id="linux-04-set-izolyatsii">linux-04-set-izolyatsii</h2>
+</div>
+<h2 id="linux-04-set-izolyatsii">04-set-izolyatsii <span class="m">· 26</span></h2>
+<div class="cards">
 <details><summary>Что такое bridge в ядре Linux?</summary><p>bridge — виртуальный коммутатор второго уровня (L2), пересылающий кадры между подключёнными интерфейсами.</p></details>
 <details><summary>Почему среды на одном bridge видят друг друга?</summary><p>Они оказываются в одном L2-сегменте, как машины в общем коммутаторе.</p></details>
 <details><summary>Как разделяют среды, которые не должны видеть друг друга?</summary><p>Разными bridge — L2-сегменты между собой не связаны.</p></details>
@@ -88,7 +96,9 @@
 <details><summary>Что такое eBPF?</summary><p>eBPF — механизм ядра Linux: проверенная ядром программа загружается внутрь и запускается на событиях ядра, например на приходе пакета на интерфейс.</p></details>
 <details><summary>Чем загрузка программы eBPF безопаснее модуля ядра?</summary><p>Перед запуском верификатор ядра проверяет, что программа завершится и не обратится к чужой памяти, а модуль ядра исполняется без такой проверки.</p></details>
 <details><summary>Что такое eBPF map?</summary><p>eBPF map — хранилище «ключ-значение» в памяти ядра, через которое программа eBPF хранит состояние и обменивается данными с программами вне ядра.</p></details>
-<h2 id="linux-05-runtaymy">linux-05-runtaymy</h2>
+</div>
+<h2 id="linux-05-runtaymy">05-runtaymy <span class="m">· 19</span></h2>
+<div class="cards">
 <details><summary>Что такое OCI-рантайм?</summary><p>OCI-рантайм — программа, которая по описанию контейнера в стандартном формате OCI создаёт процесс с нужной изоляцией.</p></details>
 <details><summary>Что такое runc?</summary><p>runc — эталонный OCI-рантайм: применяет к процессу namespaces, cgroups, capabilities и seccomp и передаёт управление приложению.</p></details>
 <details><summary>Почему описание контейнера — контракт, а не гарантия?</summary><p>В нём заявлено, что должно быть, а фактическое состояние видно только в /proc работающего процесса.</p></details>
@@ -108,4 +118,5 @@
 <details><summary>Когда достаточно runc?</summary><p>Когда код доверенный, а важны совместимость и скорость.</p></details>
 <details><summary>Зачем процесс VMM запирают в namespaces, cgroups и seccomp?</summary><p>Чтобы взлом VMM из гостя упёрся во вторую границу; в Firecracker это делает jailer.</p></details>
 <details><summary>Почему механизмы Linux нужны даже при gVisor и microVM?</summary><p>Ими запирают сам слой изоляции, и при его взломе они становятся следующей границей.</p></details>
+</div>
 </body></html>

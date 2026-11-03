@@ -1,7 +1,9 @@
-<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex, nofollow"><title>Колоды: Kubernetes</title><style>body{font:16px/1.55 -apple-system,"Segoe UI",Roboto,sans-serif;max-width:46rem;margin:0 auto;padding:1.5rem 16px;background:#f6f7f9;color:#1b2230}h1{color:#1f3864;font-size:1.5rem}h2{color:#1f3864;font-size:1.1rem;margin-top:2rem}a{color:#1f3864}details{border-bottom:1px solid #d8dde6;padding:.55rem 0}summary{cursor:pointer;font-weight:600}details p{margin:.4rem 0 .2rem;padding-left:1rem}.m{color:#5b6474;font-size:.85rem}@media(prefers-color-scheme:dark){body{background:#12161d;color:#e3e7ee}h1,h2,a{color:#91afe3}details{border-color:#2c3542}.m{color:#98a1b0}}</style></head><body>
+<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex, nofollow"><title>Колоды: Kubernetes</title><style>:root{--bg:#f6f7f9;--fg:#1b2230;--accent:#1f3864;--muted:#5b6474;--line:#d8dde6;--card:#fff;--chip:#e8ecf2;--chip-fg:#1f3864}@media(prefers-color-scheme:dark){:root{--bg:#12161d;--fg:#e3e7ee;--accent:#91afe3;--muted:#98a1b0;--line:#2c3542;--card:#1a2029;--chip:#243041;--chip-fg:#c5d4f0}}*{box-sizing:border-box}body{font:16px/1.55 -apple-system,"Segoe UI",Roboto,sans-serif;max-width:46rem;margin:0 auto;padding:1.5rem 16px 3rem;background:var(--bg);color:var(--fg)}h1{color:var(--accent);font-size:1.5rem;margin:0 0 .25rem}h2{color:var(--accent);font-size:1.05rem;margin:2rem 0 .75rem;scroll-margin-top:4.5rem}a{color:var(--accent)}.m{color:var(--muted);font-size:.85rem}.toc{position:sticky;top:0;z-index:2;display:flex;flex-wrap:wrap;gap:.4rem;margin:1rem 0 0;padding:.65rem 0 .55rem;background:var(--bg);border-bottom:1px solid var(--line)}.toc a{display:inline-flex;align-items:center;gap:.35rem;padding:.28rem .65rem;border-radius:999px;background:var(--chip);color:var(--chip-fg);text-decoration:none;font-size:.82rem;font-weight:500;line-height:1.3}.toc a:hover{filter:brightness(.96)}.toc .n{opacity:.65;font-variant-numeric:tabular-nums}.cards{display:flex;flex-direction:column;gap:.55rem}details{background:var(--card);border:1px solid var(--line);border-radius:.55rem;padding:.85rem .95rem}summary{cursor:pointer;font-weight:500;list-style:none;display:flex;gap:.55rem;align-items:flex-start;line-height:1.4}summary::-webkit-details-marker{display:none}summary::before{content:"▸";flex:0 0 auto;color:var(--muted);font-size:1rem;line-height:1.35;transition:transform .12s ease}details[open] summary::before{transform:rotate(90deg)}details p{margin:.65rem 0 0;padding:.55rem .7rem;border-left:3px solid var(--line);color:var(--muted);font-weight:400;line-height:1.5}ul{padding-left:1.2rem}</style></head><body>
 <p class="m"><a href="index.html">Все колоды</a> · обновлено 2026-11-03 · 73 карточек</p>
 <h1>Kubernetes</h1>
-<h2 id="k8s-01-ustroystvo">k8s-01-ustroystvo</h2>
+<nav class="toc" aria-label="Модули"><a href="#k8s-01-ustroystvo">01-ustroystvo<span class="n">· 19</span></a><a href="#k8s-02-resursy">02-resursy<span class="n">· 13</span></a><a href="#k8s-03-set-i-bezopasnost">03-set-i-bezopasnost<span class="n">· 41</span></a></nav>
+<h2 id="k8s-01-ustroystvo">01-ustroystvo <span class="m">· 19</span></h2>
+<div class="cards">
 <details><summary>Что такое Node в k8s?</summary><p>Node — машина кластера, на которой реально запускаются контейнеры.</p></details>
 <details><summary>Что такое Pod?</summary><p>Pod — минимальная единица запуска в k8s: один или несколько контейнеров, которые всегда размещаются на одном Node.</p></details>
 <details><summary>Что общего у контейнеров одного Pod?</summary><p>Сеть, а при желании и тома; файловые системы и процессы по умолчанию раздельные.</p></details>
@@ -21,7 +23,9 @@
 <details><summary>Что теряет платформа, запуская песочницы внутри Pod-воркера сама?</summary><p>Изоляцию и лимиты k8s для каждой песочницы — их приходится обеспечивать самой платформе через namespaces и cgroups.</p></details>
 <details><summary>Почему Pod-воркер, сам запускающий контейнеры, часто работает в privileged-режиме, то есть со всеми правами root на Node?</summary><p>Создание namespaces и cgroups требует прав, которых обычному контейнеру не дают.</p></details>
 <details><summary>Чем на практике выясняют, почему Pod не стартует?</summary><p>Событиями Pod (events): там видна причина — нехватка ресурсов, ошибка рантайма или убийство по памяти.</p></details>
-<h2 id="k8s-02-resursy">k8s-02-resursy</h2>
+</div>
+<h2 id="k8s-02-resursy">02-resursy <span class="m">· 13</span></h2>
+<div class="cards">
 <details><summary>Что такое requests?</summary><p>requests — объём CPU и памяти, который контейнер заявляет как необходимый; scheduler ставит Pod только на Node, где этот объём ещё свободен.</p></details>
 <details><summary>Что такое limits?</summary><p>limits — потолок потребления контейнера, который на Node становится лимитом его cgroup.</p></details>
 <details><summary>За счёт чего работают limits?</summary><p>kubelet создаёт cgroup на Pod и на контейнер и записывает в неё лимиты.</p></details>
@@ -35,7 +39,9 @@
 <details><summary>Почему память в requests и limits часто ставят одинаковой?</summary><p>Память нельзя притормозить, и при нехватке на Node первыми убивают тех, кто вышел за свою заявку.</p></details>
 <details><summary>Что будет с Pod без requests?</summary><p>scheduler считает его нулевым, ставит куда угодно, а при нехватке ресурсов его выселяют первым.</p></details>
 <details><summary>Что значит, что сумма limits на Node больше его ресурсов?</summary><p>Node переподписан: это работает, пока все не пришли за ресурсами одновременно, а на пике начинаются throttling и OOMKilled.</p></details>
-<h2 id="k8s-03-set-i-bezopasnost">k8s-03-set-i-bezopasnost</h2>
+</div>
+<h2 id="k8s-03-set-i-bezopasnost">03-set-i-bezopasnost <span class="m">· 41</span></h2>
+<div class="cards">
 <details><summary>Чем Namespace в k8s отличается от namespace в Linux?</summary><p>В k8s это группировка объектов и прав в API, а в Linux — изоляция того, что видит процесс.</p></details>
 <details><summary>Что такое securityContext?</summary><p>securityContext — раздел описания Pod или контейнера, где задаются настройки изоляции процесса: пользователь, capabilities, seccomp.</p></details>
 <details><summary>За счёт чего работает securityContext?</summary><p>Рантайм при запуске применяет к процессу заданного пользователя, capabilities и seccomp.</p></details>
@@ -77,4 +83,5 @@
 <details><summary>Кто фильтрует трафик в K3s, если Flannel политик не исполняет?</summary><p>Встроенный в K3s контроллер политик на основе kube-router.</p></details>
 <details><summary>За счёт чего Cilium исполняет NetworkPolicy без iptables?</summary><p>Программа eBPF на veth Pod со стороны Node сопоставляет пакет с идентификатором отправителя и проверяет разрешение поиском в eBPF map, а не проходом цепочки правил по порядку.</p></details>
 <details><summary>Чем отказ от bridge отличается от отказа от overlay network?</summary><p>bridge решает, как Pod подключены внутри Node, а overlay — как пакет идёт между Node, поэтому одно можно убрать без другого.</p></details>
+</div>
 </body></html>
