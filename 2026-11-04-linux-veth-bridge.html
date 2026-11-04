@@ -1,0 +1,485 @@
+<!doctype html>
+<html lang="ru">
+<title>veth и bridge</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="robots" content="noindex, nofollow">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>/* Layout: одна колонка урока ~44rem; схемы и таблицы скроллятся внутри своих контейнеров */
+:root {
+  --bg: #f6f7f9; --surface: #ffffff; --sunk: #edf0f5;
+  --fg: #1b2230; --muted: #5b6474; --line: #d8dde6;
+  --accent: #1f3864; --accent-soft: #e3e9f4;
+  --dnat: #a8571a; --dnat-soft: #f8ebdf;
+  --ok: #2d6a4f; --ok-soft: #e5f2ea; --no: #9b2226; --no-soft: #f8e7e7;
+  --f-body: "IBM Plex Sans", "Segoe UI", Roboto, Arial, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #12161d; --surface: #19202a; --sunk: #202834;
+  --fg: #e3e7ee; --muted: #98a1b0; --line: #2c3542;
+  --accent: #91afe3; --accent-soft: #223149;
+  --dnat: #f0a35e; --dnat-soft: #3a2a1c;
+  --ok: #74c69d; --ok-soft: #1b3127; --no: #f28b82; --no-soft: #3a2020; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #12161d; --surface: #19202a; --sunk: #202834;
+  --fg: #e3e7ee; --muted: #98a1b0; --line: #2c3542;
+  --accent: #91afe3; --accent-soft: #223149;
+  --dnat: #f0a35e; --dnat-soft: #3a2a1c;
+  --ok: #74c69d; --ok-soft: #1b3127; --no: #f28b82; --no-soft: #3a2020; color-scheme: dark }
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font: 16px/1.6 var(--f-body); margin: 0; }
+.wrap { max-width: 44rem; margin: 0 auto; padding-block: 1.5rem 4rem;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+h1 { font-size: 1.75rem; line-height: 1.25; margin: .25rem 0 0; color: var(--accent); text-wrap: balance; font-weight: 600; }
+h2 { font-size: 1.15rem; margin: 2.75rem 0 .75rem; color: var(--accent); font-weight: 600; text-wrap: balance; }
+h3 { font-size: 1rem; margin: 1.75rem 0 .25rem; font-weight: 600; }
+p { margin: .6rem 0; max-width: 65ch; }
+a { color: var(--accent); }
+.meta { color: var(--muted); font-size: .875rem; margin-top: .35rem; }
+.label { font: 500 .72rem/1.3 var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.backlink { font-size: .85rem; text-decoration: none; }
+code { font-family: var(--f-mono); font-size: .9em; background: var(--sunk); padding: .05rem .3rem; border-radius: 3px; }
+.plan { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: 1.25rem; }
+.plan a { font-size: .85rem; text-decoration: none; border: 1px solid var(--line); padding: .2rem .65rem; border-radius: 999px; background: var(--surface); }
+.plan a:hover, .plan a:focus-visible { border-color: var(--accent); }
+
+.scope { margin-top: 1.25rem; padding: .75rem 1rem; border: 1px dashed var(--line); border-radius: 8px; font-size: .92rem; }
+.scope p { margin: .15rem 0; }
+
+.tbl { overflow-x: auto; margin: 1rem 0; }
+table { border-collapse: collapse; width: 100%; min-width: 32rem; font-size: .92rem; }
+th, td { text-align: left; padding: .5rem .6rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-weight: 600; color: var(--muted); font-size: .8rem; }
+.pairs { display: grid; grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr)); gap: .75rem; margin: 1.25rem 0; }
+.pair { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: .8rem 1rem; min-width: 0; }
+.pair p { margin: .35rem 0 0; font-size: .95rem; }
+.key { border-left: 3px solid var(--accent); padding: .3rem 0 .3rem .9rem; margin: 1.25rem 0; }
+.key p { margin: .2rem 0; }
+.aside { color: var(--muted); font-size: .92rem; }
+
+ol.chain, ol.walk { list-style: none; padding: 0; margin: .9rem 0 0; display: grid; gap: .35rem; counter-reset: s; }
+ol.chain li, ol.walk li { counter-increment: s; display: grid; grid-template-columns: 2rem 1fr; gap: .5rem; align-items: baseline; padding: .45rem .6rem; border-radius: 6px; }
+ol.chain li::before, ol.walk li::before { content: counter(s); font: 500 .8rem var(--f-mono); color: var(--muted); text-align: right; }
+ol li > span { min-width: 0; }
+ol.walk li.hl { background: var(--dnat-soft); }
+ol.walk li.hl b { color: var(--dnat); }
+.who { display: block; font: .8rem var(--f-mono); color: var(--muted); }
+
+.scheme { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: .75rem; margin-top: 1rem; }
+.scheme svg { display: block; min-width: 640px; width: 100%; height: auto; }
+.scheme text { font-family: var(--f-mono); font-size: 12px; fill: var(--fg); }
+.scheme .lbl { fill: var(--muted); font-size: 11px; }
+.scheme .node { fill: var(--sunk); stroke: var(--line); }
+.scheme .pod { fill: var(--accent-soft); stroke: var(--accent); }
+.scheme .box { fill: var(--surface); stroke: var(--accent); }
+.scheme .wire { stroke: var(--muted); stroke-width: 1.5; fill: none; }
+.scheme .route { fill: var(--surface); stroke: var(--line); stroke-dasharray: 3 3; }
+.scheme .path { stroke: var(--accent); stroke-width: 3; fill: none; stroke-linecap: round; opacity: .85; }
+.scheme .svc-only { display: none; }
+.scheme.svc .svc-only { display: inline; }
+.scheme .dnatbox { fill: var(--dnat-soft); stroke: var(--dnat); }
+.scheme .dnattxt { fill: var(--dnat); font-weight: 500; }
+
+.tabs { display: flex; gap: .4rem; margin-top: 1rem; flex-wrap: wrap; }
+.tabs button { font: 500 .9rem var(--f-body); padding: .4rem .9rem; border-radius: 6px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); cursor: pointer; }
+.tabs button[aria-selected="true"] { background: var(--accent); border-color: var(--accent); color: var(--bg); }
+button:focus-visible, .choices li:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.open-q { background: var(--surface); border: 1px solid var(--accent); border-radius: 8px; padding: .9rem 1.1rem; margin: 1.5rem 0; }
+.open-q .q { font-weight: 600; margin-top: .25rem; }
+.open-q .answer { margin-top: .8rem; padding: .8rem 1rem; background: var(--sunk); border-radius: 6px; }
+
+.deck { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 1.25rem; margin-top: 1rem; }
+.deck-top { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; font-size: .85rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.card-q { font-size: 1.15rem; font-weight: 600; margin: 1rem 0 .4rem; text-wrap: balance; }
+.card-hint { font-size: .85rem; color: var(--muted); }
+.card-a { margin-top: 1rem; padding: .9rem 1rem; background: var(--sunk); border-radius: 6px; }
+.row { display: flex; gap: .5rem; flex-wrap: wrap; margin-top: 1rem; }
+.btn { font: 500 .9rem var(--f-body); padding: .5rem 1rem; border-radius: 6px; border: 1px solid var(--accent); background: transparent; color: var(--accent); cursor: pointer; }
+.btn.primary { background: var(--accent); color: var(--bg); }
+.btn.ok { border-color: var(--ok); color: var(--ok); }
+.btn.no { border-color: var(--no); color: var(--no); }
+.btn.small { font-size: .8rem; padding: .3rem .7rem; }
+.misses { margin-top: 1rem; padding-left: 1.2rem; }
+.misses li { margin: .4rem 0; }
+.misses .a { color: var(--muted); font-size: .92rem; }
+
+.qz { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 1rem 1.15rem; margin: 1rem 0; }
+.qz-text { font-weight: 600; }
+.choices { list-style: none; padding: 0; margin: .8rem 0 0; display: grid; gap: .45rem; }
+.choices li { border: 1px solid var(--line); border-radius: 6px; padding: .55rem .8rem; cursor: pointer; background: var(--bg); }
+.choices li:hover { border-color: var(--accent); }
+.choices.done li { cursor: default; }
+.choices li.correct { border-color: var(--ok); background: var(--ok-soft); }
+.choices li.wrong { border-color: var(--no); background: var(--no-soft); }
+.choices li.dim { opacity: .55; }
+.explain { margin-top: .7rem; font-size: .92rem; color: var(--muted); }
+.score { font-variant-numeric: tabular-nums; color: var(--muted); font-size: .9rem; }
+.foot { margin-top: 3rem; display: flex; gap: 1rem; flex-wrap: wrap; align-items: center; justify-content: space-between; font-size: .85rem; color: var(--muted); }
+.session li { margin: .5rem 0; }
+.sources { font-size: .9rem; }
+@media (prefers-reduced-motion: no-preference) { .btn, .choices li, .tabs button { transition: background .15s, border-color .15s; } }
+
+[hidden] { display: none !important; }
+
+.scheme.svc .podonly { display: none; }
+.consolidate { background: var(--surface); border: 1px solid var(--accent); border-radius: 8px; padding: .9rem 1.1rem; margin-top: 1rem; }
+.consolidate a.btn { display: inline-block; text-decoration: none; margin: .4rem .4rem 0 0; }
+</style>
+
+
+<div class="wrap">
+<header>
+  <a class="backlink" href="index.html">← Все уроки</a>
+  <div class="label" style="margin-top:1rem">Сеть в Linux · урок 1 из 5</div>
+  <h1>veth и bridge</h1>
+  <div class="meta">Как песочница в своём network namespace подключается к хосту и к соседям · ~10 минут</div>
+  <div class="scope">
+    <p><b>Сценарий всей серии.</b> Один Linux-хост, две песочницы-контейнера A и B, у каждой свой network namespace. Они ходят друг к другу и в интернет. Каждый урок добавляет к этой картинке один слой.</p>
+    <p><b>Границы примера.</b> IPv4, контейнеры. У microVM вместо veth устройство TAP — одной строкой в конце.</p>
+    <p><b>Перед уроком:</b> network namespace (колода linux-01) — свой сетевой стек, в новом есть только loopback.</p>
+  </div>
+  <nav class="plan" aria-label="Разделы">
+    <a href="#s-who">1. Кто что делает</a><a href="#s-path">2. Путь кадра</a><a href="#s-cards">3. Карточки</a><a href="#s-quiz">4. Квиз</a><a href="#s-session">5. На сессии</a><a href="#s-fix">6. Закрепить</a>
+  </nav>
+</header>
+
+<section id="s-who">
+<h2>1. Кто что делает</h2>
+<p><b>Задача.</b> Песочница живёт в своём network namespace, и в нём есть только loopback: проводов наружу нет. Нужно дать ей выход — к соседней песочнице и к хосту, — не ломая изоляцию её сетевого стека.</p>
+
+<h3>Три слова до начала</h3>
+<div class="pairs">
+  <div class="pair"><div class="label">Кадр и пакет</div><p><b>Пакет</b> — данные с IP-адресами отправителя и получателя (уровень L3). <b>Кадр</b> — обёртка вокруг пакета с MAC-адресами (уровень L2), в ней пакет едет по одному участку сети. Пакет на пути не меняется, кадр новый на каждом участке.</p></div>
+  <div class="pair"><div class="label">MAC-адрес</div><p>Адрес сетевого интерфейса внутри одного L2-сегмента — участка, где все видят друг друга напрямую. У каждого интерфейса свой MAC.</p></div>
+  <div class="pair"><div class="label">ARP</div><p>Способ узнать MAC по IP внутри своего сегмента: интерфейс кричит всем «у кого 10.0.0.3?», владелец отвечает своим MAC.</p></div>
+</div>
+
+<div class="tbl"><table>
+<thead><tr><th>Элемент</th><th>Что это и где лежит</th><th>Что делает с кадром</th><th>Как проверить</th></tr></thead>
+<tbody>
+<tr><td>veth-пара</td><td>Два связанных виртуальных интерфейса. Один конец в namespace песочницы (там он называется <code>eth0</code>), второй на хосте</td><td>Что вошло в один конец, выходит из другого. Ничего не решает и не меняет</td><td>на хосте виден конец <code>vethA</code>, в песочнице — <code>eth0</code></td></tr>
+<tr><td>bridge (<code>br0</code>)</td><td>Виртуальный коммутатор (switch) на хосте. К нему подключены хостовые концы veth</td><td>Решает, в какой порт отдать кадр, по MAC получателя. IP не смотрит</td><td>список интерфейсов, подключённых к <code>br0</code></td></tr>
+<tr><td>IP-адрес на bridge</td><td><code>10.0.0.1</code> на <code>br0</code></td><td>Делает br0 ещё и интерфейсом самого хоста: кадр на MAC br0 уходит в ядро хоста</td><td>у <code>br0</code> есть адрес; песочница видит его шлюзом</td></tr>
+</tbody></table></div>
+
+<div class="pairs">
+  <div class="pair"><div class="label">veth ≠ bridge</div><p>veth — провод с двумя концами: соединяет ровно два места. bridge — коммутатор: соединяет много проводов и выбирает, в какой отдать кадр.</p></div>
+  <div class="pair"><div class="label">bridge = switch</div><p>Это одно и то же по функции: «bridge» — название программного коммутатора в ядре Linux. Работает на L2, по MAC.</p></div>
+  <div class="pair"><div class="label">bridge ≠ маршрутизатор</div><p>bridge передаёт кадры внутри одного сегмента. Отправить пакет в другую сеть он не может: это решает ядро по таблице маршрутов — урок 2.</p></div>
+  <div class="pair"><div class="label">namespace ≠ изоляция от соседа</div><p>namespace даёт песочнице свой сетевой стек. Но если её провод воткнут в тот же bridge, что у соседа, они в одном сегменте и видят друг друга.</p></div>
+</div>
+
+<p><b>Признаки неверной реализации — все молчаливые.</b></p>
+<div class="tbl"><table>
+<thead><tr><th>Что видно</th><th>Что на самом деле</th></tr></thead>
+<tbody>
+<tr><td>песочница запустилась без ошибок</td><td>хостовый конец veth не подключён к br0 — песочница видит только себя</td></tr>
+<tr><td>у песочниц разные namespace</td><td>они на одном bridge и видят друг друга — изоляции между ними нет</td></tr>
+<tr><td>песочниц 3, интерфейсов на br0 — 5</td><td>висят концы от удалённых песочниц, или к br0 подключено лишнее. Проверка: число интерфейсов на bridge = число живых песочниц</td></tr>
+</tbody></table></div>
+
+<div class="open-q">
+  <div class="label">Открытый вопрос — вслух</div>
+  <div class="q">Зачем песочнице veth, если у неё уже есть свой network namespace? И зачем тогда bridge?</div>
+  <div class="row"><button class="btn small">Ответил вслух — показать эталон</button></div>
+  <div class="answer" hidden>В новом namespace только loopback — проводов наружу нет. veth и есть провод через границу namespace: один конец внутри, другой на хосте. bridge нужен, когда проводов много: он соединяет их в один сегмент и по MAC решает, в какой провод отдать кадр.</div>
+</div>
+</section>
+
+<section id="s-path">
+<h2>2. Путь кадра</h2>
+<p>Подсеть песочниц <code>10.0.0.0/24</code>: A — <code>10.0.0.2</code>, B — <code>10.0.0.3</code>, у br0 — <code>10.0.0.1</code>.</p>
+
+<div class="tabs" role="tablist" aria-label="Сценарий">
+  <button role="tab" aria-selected="true" data-panel="walk-ab">A → B</button>
+  <button role="tab" aria-selected="false" data-panel="walk-net" data-scheme="svc">A → интернет (начало)</button>
+</div>
+
+<div class="scheme" id="scheme">
+<svg viewBox="0 0 760 380" role="img" aria-label="Хост: песочницы A и B в своих namespace, veth-пары к br0, ядро хоста и eth0 хоста; путь кадра A → B или A → ядро хоста">
+  <rect class="node" x="10" y="10" width="740" height="360" rx="10"/>
+  <text x="26" y="34" class="lbl">ХОСТ · namespace хоста</text>
+  <polyline class="path podonly" points="200,127 335,127 500,190 500,200 335,263 200,263"/>
+  <polyline class="path svc-only" points="200,127 335,127 500,190 620,120"/>
+
+  <rect class="pod" x="30" y="60" width="200" height="90" rx="8"/>
+  <text x="44" y="84">Песочница A</text>
+  <text x="44" y="102" class="lbl">свой network namespace</text>
+  <text x="44" y="132">eth0 · 10.0.0.2</text>
+
+  <rect class="pod" x="30" y="230" width="200" height="90" rx="8"/>
+  <text x="44" y="254">Песочница B</text>
+  <text x="44" y="272" class="lbl">свой network namespace</text>
+  <text x="44" y="302">eth0 · 10.0.0.3</text>
+
+  <rect class="box" x="290" y="110" width="90" height="34" rx="6"/>
+  <text x="308" y="132">vethA</text>
+  <rect class="box" x="290" y="246" width="90" height="34" rx="6"/>
+  <text x="308" y="268">vethB</text>
+  <text x="252" y="196" class="lbl">veth-пары: провод</text>
+  <text x="252" y="210" class="lbl">через границу namespace</text>
+
+  <line class="wire" x1="230" y1="127" x2="290" y2="127"/>
+  <line class="wire" x1="230" y1="263" x2="290" y2="263"/>
+
+  <rect class="box" x="430" y="160" width="140" height="70" rx="8"/>
+  <text x="446" y="184">br0 · коммутатор</text>
+  <text x="446" y="202" class="lbl">решает по MAC</text>
+  <text x="446" y="220">IP 10.0.0.1</text>
+  <line class="wire" x1="380" y1="127" x2="430" y2="180"/>
+  <line class="wire" x1="380" y1="263" x2="430" y2="212"/>
+
+  <rect class="route" x="584" y="50" width="158" height="90" rx="8"/>
+  <text x="596" y="74">ядро хоста</text>
+  <text x="596" y="94" class="lbl">куда: маршруты (урок 2)</text>
+  <text x="596" y="110" class="lbl">что сделать: netfilter,</text>
+  <text x="596" y="124" class="lbl">NAT (уроки 3–4)</text>
+  <line class="wire" x1="570" y1="180" x2="620" y2="140"/>
+
+  <rect class="box" x="600" y="290" width="135" height="40" rx="6"/>
+  <text x="612" y="315">eth0 хоста → сеть</text>
+  <line class="wire" x1="667" y1="140" x2="667" y2="290"/>
+
+</svg>
+</div>
+
+<ol class="walk" id="walk-ab">
+  <li><span>Процесс в A шлёт пакет на <code>10.0.0.3</code>. Адрес из своей подсети — шлюз не нужен, отправлять напрямую.<span class="who">кто решает: ядро в namespace A, по своей таблице маршрутов (урок 2)</span></span></li>
+  <li><span>MAC получателя неизвестен: ARP-запрос «у кого 10.0.0.3?» уходит по veth в br0, br0 рассылает его во все порты, B отвечает своим MAC.<span class="who">ядро A спрашивает, ядро B отвечает; bridge только пересылает</span></span></li>
+  <li><span>Кадр с MAC B: eth0 A → vethA → br0.<span class="who">veth передаёт, ничего не решает</span></span></li>
+  <li><span>br0 смотрит MAC получателя в своей таблице: он за портом vethB. Отдаёт туда.<span class="who">кто решает: bridge, по MAC; IP не смотрит</span></span></li>
+  <li><span>vethB → eth0 B → ядро B принимает пакет. Ядро хоста в этом пути не участвовало.</span></li>
+</ol>
+<ol class="walk" id="walk-net" hidden>
+  <li><span>Процесс в A шлёт пакет на <code>8.8.8.8</code>. Адрес не из своей подсети — отправить на шлюз по умолчанию <code>10.0.0.1</code>.<span class="who">кто решает: ядро в namespace A, по маршруту по умолчанию</span></span></li>
+  <li><span>ARP за MAC шлюза <code>10.0.0.1</code>. Отвечает сам br0: адрес висит на нём. В пакете адрес назначения остаётся <code>8.8.8.8</code>, в кадре — MAC br0.</span></li>
+  <li><span>eth0 A → vethA → br0. Пока всё так же, как в соседней вкладке.</span></li>
+  <li class="hl"><span><b>Кадр адресован самому хосту.</b> MAC получателя — MAC br0, поэтому br0 не ищет порт, а отдаёт пакет в сетевой стек ядра хоста.<span class="who">br0 здесь работает как интерфейс хоста, а не как коммутатор</span></span></li>
+  <li><span>Дальше решает ядро хоста: куда отправить (таблица маршрутов, урок 2) и что сделать по пути (netfilter и NAT, уроки 3–4).</span></li>
+</ol>
+
+<div class="key">
+  <p><b>veth — провод, bridge — коммутатор по MAC.</b> Внутри сегмента кадр доходит без ядра хоста. В другую сеть пакет попадает только через ядро хоста — для этого у br0 есть IP.</p>
+</div>
+<p class="aside">microVM: вместо veth гость получает устройство TAP. Хостовый конец TAP так же подключают к bridge, а кадры между TAP и гостевым ядром передаёт монитор (Firecracker).</p>
+
+<div class="open-q">
+  <div class="label">Открытый вопрос — вслух</div>
+  <div class="q">Чем путь A → B отличается от пути A → интернет до момента, когда кадр попал в br0, и после?</div>
+  <div class="row"><button class="btn small">Ответил вслух — показать эталон</button></div>
+  <div class="answer" hidden>До br0 одинаково: eth0 A → vethA → br0; разный только MAC в кадре — B или самого br0. Дальше: при MAC B bridge отдаёт кадр в порт vethB, и ядро хоста не участвует. При MAC br0 кадр адресован хосту — пакет уходит в ядро хоста, и дорогу выбирает уже ядро.</div>
+</div>
+</section>
+
+<section id="s-cards">
+<h2>3. Карточки</h2>
+<p>Сначала вслух, потом открыть ответ. Прогресс сохраняется в этом браузере.</p>
+<div class="deck" id="deck" aria-live="polite"></div>
+</section>
+
+<section id="s-quiz">
+<h2>4. Квиз на различение</h2>
+<p>Варианты перемешиваются при каждой загрузке.</p>
+<div id="quiz"></div>
+<div class="score" id="score"></div>
+</section>
+
+<section id="s-session" class="session">
+<h2>5. На сессии</h2>
+<p>Без подсказок, вслух.</p>
+<ul>
+  <li>Без схемы проведи кадр от A к B. На каждом шаге: кто решает и по какому признаку.</li>
+  <li>Случай: A и B видят друг друга, а в интернет A не выходит. Где граница между тем, что уже работает, и тем, что сломано?</li>
+  <li>Связь: у песочниц разных пользователей разные namespace. Почему этого мало для изоляции между ними, и что нужно ещё?</li>
+</ul>
+</section>
+
+<section id="s-fix">
+<h2>6. Закрепить</h2>
+<div class="consolidate">
+  <p><b>Когда:</b> завтра, потом через 3–4 дня. Модуль целиком — вместе с соседними понятиями, не только карточки этого урока.</p>
+  <a class="btn primary" href="decks/linux.html?run=linux-04-set-izolyatsii">Прогнать linux-04 →</a>
+  <a class="btn" href="decks/linux.html?run=linux-01-namespaces">Прогнать linux-01 →</a>
+  <p class="aside">Следующий урок серии — «Таблица маршрутов»: что происходит с пакетом, когда он попал в ядро хоста.</p>
+</div>
+</section>
+
+<section class="sources">
+<h2>Источники</h2>
+<ul>
+  <li><a href="https://www.man7.org/linux/man-pages/man4/veth.4.html">veth(4) — Linux manual page</a> — пара связанных интерфейсов: что отправлено в один, сразу принимается другим; основное применение — связь между network namespace.</li>
+  <li><a href="https://www.man7.org/linux/man-pages/man8/bridge.8.html">bridge(8) — Linux manual page</a> — управление bridge; fdb — таблица известных MAC-адресов по портам.</li>
+</ul>
+</section>
+
+<div class="foot"><a href="index.html">← Все уроки</a><button class="btn small" id="reset">Сбросить прогресс</button></div>
+</div>
+
+<script>
+window.LESSON = { id: '2026-11-04-linux-veth-bridge', cards: [{"q": "Что такое veth-пара?", "a": "veth — два связанных виртуальных интерфейса: что вошло в один, выходит из другого.", "deck": "linux-04-set-izolyatsii"}, {"q": "Зачем песочнице veth?", "a": "В её network namespace только loopback, а veth — провод через границу namespace: один конец внутри, другой на хосте.", "deck": "linux-04-set-izolyatsii"}, {"q": "По какому признаку bridge выбирает порт для кадра?", "a": "По MAC получателя из своей таблицы известных адресов; IP он не смотрит.", "deck": "linux-04-set-izolyatsii"}, {"q": "Чем кадр отличается от пакета?", "a": "Пакет несёт IP-адреса и в пути не меняется, а кадр — обёртка с MAC-адресами на одном участке сети, новая на каждом.", "deck": "linux-04-set-izolyatsii"}, {"q": "Что такое ARP?", "a": "Способ узнать MAC по IP внутри своего L2-сегмента: вопрос всем, ответ владельца адреса.", "deck": "linux-04-set-izolyatsii"}, {"q": "Что делает bridge с кадром на собственный MAC?", "a": "Отдаёт пакет в сетевой стек ядра хоста, и дальше дорогу выбирает ядро.", "deck": "linux-04-set-izolyatsii"}, {"q": "Что такое bridge в ядре Linux?", "a": "bridge — виртуальный коммутатор второго уровня (L2), пересылающий кадры между подключёнными интерфейсами.", "deck": "linux-04-set-izolyatsii"}, {"q": "Почему среды на одном bridge видят друг друга?", "a": "Они оказываются в одном L2-сегменте, как машины в общем коммутаторе.", "deck": "linux-04-set-izolyatsii"}, {"q": "Как разделяют среды, которые не должны видеть друг друга?", "a": "Разными bridge — L2-сегменты между собой не связаны.", "deck": "linux-04-set-izolyatsii"}, {"q": "Чем проверяют, что среда подключена к нужному L2-сегменту?", "a": "Просмотром интерфейсов на bridge и сверкой их числа с числом живых сред.", "deck": "linux-04-set-izolyatsii"}, {"q": "Чем подключение контейнера к сети отличается от подключения microVM?", "a": "Контейнер получает в свой network namespace конец veth-пары, второй конец остаётся на bridge хоста, а microVM получает TAP, кадры которого монитор передаёт гостевому ядру.", "deck": "linux-04-set-izolyatsii"}, {"q": "Что изолирует network namespace?", "a": "Сетевой стек процесса: интерфейсы, адреса, маршруты и правила фильтрации.", "deck": "linux-01-namespaces"}, {"q": "Почему процесс в новом network namespace не выходит наружу?", "a": "В нём есть только loopback, и маршрута к внешним адресам не существует.", "deck": "linux-01-namespaces"}, {"q": "Зачем у bridge на Node есть IP-адрес?", "a": "Это шлюз Pod: через него пакеты в чужие подсети попадают в ядро Node.", "deck": "k8s-03-set-i-bezopasnost"}], quiz: [
+  { q: 'Песочницы A и B в разных network namespace, их veth подключены к одному br0. Видят ли они друг друга?',
+    ok: 'Да: они в одном L2-сегменте, namespace изолирует стек, а не провод',
+    no: ['Нет: разные namespace изолируют их друг от друга', 'Только если на хосте разрешить маршрут между ними', 'Только через NAT на хосте'],
+    ex: 'namespace даёт каждой свой сетевой стек, но провода ведут в общий коммутатор. Внутри сегмента кадр идёт по MAC, ядро хоста не участвует.' },
+  { q: 'По какому признаку br0 решает, в какой порт отдать кадр?',
+    ok: 'По MAC-адресу получателя в кадре',
+    no: ['По IP-адресу получателя, через таблицу маршрутов', 'По правилу netfilter на хосте', 'По имени veth, к которому обращается песочница'],
+    ex: 'bridge — коммутатор L2: он знает, за каким портом какой MAC, и IP не смотрит. Решения по IP принимает ядро по таблице маршрутов.' },
+  { q: 'Песочница A шлёт пакет на 8.8.8.8. Что стоит в кадре и в пакете, когда он выходит из A?',
+    ok: 'В кадре MAC br0 (шлюза), в пакете адрес назначения 8.8.8.8',
+    no: ['В кадре MAC 8.8.8.8, в пакете 8.8.8.8', 'В кадре MAC br0, в пакете адрес назначения заменён на 10.0.0.1', 'Кадр без MAC получателя, bridge разошлёт его во все порты'],
+    ex: 'Пакет на пути не меняется, а кадр адресуется следующему участку — шлюзу. MAC машины в другой сети узнать нельзя: ARP работает только внутри своего сегмента.' },
+  { q: 'Сколько veth-пар нужно, чтобы подключить три песочницы к одному bridge?',
+    ok: 'Три: по одной на песочницу',
+    no: ['Одна общая на bridge', 'Шесть: по две на песочницу', 'Две: третья подключается через соседнюю'],
+    ex: 'veth — провод ровно между двумя местами: namespace песочницы и хостом. Каждой песочнице нужен свой.' },
+  { q: 'Песочница создана, но хостовый конец её veth не подключён к br0. Что увидишь?',
+    ok: 'Запуск без ошибок, но песочница не видит ни соседей, ни хост',
+    no: ['Запуск упадёт с ошибкой сети', 'Песочница выйдет в сеть напрямую через eth0 хоста', 'Ядро само подключит veth к единственному bridge'],
+    ex: 'Молчаливая поломка: провод есть, но второй конец ни во что не воткнут. Проверяется сверкой интерфейсов на bridge с числом живых песочниц.' },
+  { q: 'Песочницы разных пользователей не должны видеть друг друга. Что даёт это на уровне L2?',
+    ok: 'Разные bridge: разные L2-сегменты между собой не связаны',
+    no: ['Разных namespace достаточно', 'Разные IP-адреса в одной подсети на общем bridge', 'Убрать IP-адрес с bridge'],
+    ex: 'На общем bridge кадры ходят по MAC между всеми портами. Разные bridge разводят сегменты; что пройдёт между ними через ядро хоста, решают уже правила — урок 3.' },
+  { q: 'Что делает veth-пара с кадром?',
+    ok: 'Передаёт с одного конца на другой и ничего не решает',
+    no: ['Выбирает порт по MAC, как маленький bridge', 'Маршрутизирует пакет по IP', 'Подменяет адрес песочницы на адрес хоста'],
+    ex: 'veth — только провод. Решают по обе стороны: внутри песочницы — её ядро, на хосте — bridge или ядро хоста.' }
+]};
+</script>
+<script>// Общий код уроков. Данные урока — в window.LESSON = { id, cards, quiz }.
+// Прогресс хранится в localStorage этого браузера; без него урок работает с нуля.
+(function () {
+  var L = window.LESSON;
+  if (!L || !L.id) throw new Error('window.LESSON.id не задан');
+  var KEY = 'drill:' + L.id;
+  var state = load();
+  function load() { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { return {}; } }
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} }
+  function shuffle(a) { for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]; }); }
+
+  // вкладки: кнопка .tabs button[data-panel]; data-scheme — класс для #scheme
+  document.querySelectorAll('.tabs').forEach(function (tabs) {
+    var btns = tabs.querySelectorAll('button[data-panel]');
+    btns.forEach(function (b) {
+      b.addEventListener('click', function () {
+        btns.forEach(function (x) {
+          x.setAttribute('aria-selected', String(x === b));
+          document.getElementById(x.dataset.panel).hidden = x !== b;
+        });
+        var sch = document.getElementById('scheme');
+        if (sch) sch.className = 'scheme' + (b.dataset.scheme ? ' ' + b.dataset.scheme : '');
+      });
+    });
+  });
+
+  // открытые вопросы: эталон под кнопкой, после своей попытки
+  document.querySelectorAll('.open-q').forEach(function (box) {
+    var btn = box.querySelector('button'), ans = box.querySelector('.answer');
+    btn.addEventListener('click', function () {
+      ans.hidden = !ans.hidden;
+      btn.textContent = ans.hidden ? 'Ответил вслух — показать эталон' : 'Скрыть эталон';
+    });
+  });
+
+  // карточки
+  var deck = document.getElementById('deck');
+  function cardsStart(only) {
+    var idx = only || L.cards.map(function (_, i) { return i; });
+    state.cards = { n: L.cards.length, order: shuffle(idx.slice()), pos: 0, missed: [], knew: 0 };
+    save(); cardsShow();
+  }
+  function cardsShow() {
+    var s = state.cards;
+    if (s.pos >= s.order.length) return cardsFinish();
+    var c = L.cards[s.order[s.pos]];
+    deck.innerHTML =
+      '<div class="deck-top"><span>' + (s.pos + 1) + ' из ' + s.order.length + '</span><span>знал ' + s.knew + ' · не знал ' + s.missed.length + '</span></div>' +
+      '<div class="card-q">' + esc(c.q) + '</div><div class="card-hint">' + esc(c.deck) + '</div>' +
+      '<div class="row" id="card-row"><button class="btn primary" id="reveal">Ответил вслух — показать</button></div>';
+    document.getElementById('reveal').addEventListener('click', function () {
+      document.getElementById('card-row').outerHTML = '<div class="card-a">' + esc(c.a) + '</div>' +
+        '<div class="row"><button class="btn ok" id="yes">Знал</button><button class="btn no" id="no">Не знал</button></div>';
+      document.getElementById('yes').addEventListener('click', function () { s.knew++; s.pos++; save(); cardsShow(); });
+      document.getElementById('no').addEventListener('click', function () { s.missed.push(s.order[s.pos]); s.pos++; save(); cardsShow(); });
+      document.getElementById('yes').focus();
+    });
+  }
+  function cardsFinish() {
+    var s = state.cards;
+    var h = '<div class="deck-top"><span>Готово: ' + s.order.length + ' карточек</span><span>знал ' + s.knew + ' · не знал ' + s.missed.length + '</span></div>';
+    if (s.missed.length) {
+      h += '<p>Не вспомнилось — назови на сессии:</p><ol class="misses">' +
+        s.missed.map(function (i) { var c = L.cards[i]; return '<li>' + esc(c.q) + '<div class="a">' + esc(c.a) + '</div></li>'; }).join('') + '</ol>' +
+        '<div class="row"><button class="btn primary" id="again-miss">Ещё раз только эти</button><button class="btn" id="again-all">Все заново</button></div>';
+    } else {
+      h += '<p>Все вспомнились. Дальше квиз: он проверяет различение, а не память.</p><div class="row"><button class="btn" id="again-all">Все заново</button></div>';
+    }
+    deck.innerHTML = h;
+    var m = document.getElementById('again-miss');
+    if (m) { var list = s.missed.slice(); m.addEventListener('click', function () { cardsStart(list); }); }
+    document.getElementById('again-all').addEventListener('click', function () { cardsStart(); });
+  }
+  if (deck) {
+    if (state.cards && state.cards.n === L.cards.length) cardsShow(); else cardsStart();
+  }
+
+  // квиз: варианты перемешиваются при каждой загрузке
+  var quiz = document.getElementById('quiz'), score = document.getElementById('score');
+  function quizRender() {
+    if (!quiz) return;
+    if (!state.quiz || state.quiz.n !== L.quiz.length) state.quiz = { n: L.quiz.length, picked: {} };
+    quiz.innerHTML = '';
+    L.quiz.forEach(function (it, n) {
+      var box = document.createElement('div'); box.className = 'qz';
+      var opts = shuffle([{ t: it.ok, c: true }].concat(it.no.map(function (t) { return { t: t, c: false }; })));
+      box.innerHTML = '<div class="qz-text">' + (n + 1) + '. ' + esc(it.q) + '</div><ul class="choices">' +
+        opts.map(function (o) { return '<li tabindex="0" data-c="' + o.c + '">' + esc(o.t) + '</li>'; }).join('') +
+        '</ul><div class="explain" hidden>' + esc(it.ex) + '</div>';
+      var ul = box.querySelector('ul');
+      function mark(li) {
+        ul.classList.add('done');
+        ul.querySelectorAll('li').forEach(function (x) {
+          if (x.dataset.c === 'true') x.classList.add('correct');
+          else if (x === li) x.classList.add('wrong');
+          else x.classList.add('dim');
+        });
+        box.querySelector('.explain').hidden = false;
+      }
+      function pick(li) {
+        if (ul.classList.contains('done')) return;
+        state.quiz.picked[n] = li.textContent; save(); mark(li); quizScore();
+      }
+      ul.querySelectorAll('li').forEach(function (li) {
+        li.addEventListener('click', function () { pick(li); });
+        li.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(li); } });
+        if (state.quiz.picked[n] === li.textContent) mark(li);
+      });
+      quiz.appendChild(box);
+    });
+    quizScore();
+  }
+  function quizScore() {
+    if (!score) return;
+    var done = 0, right = 0;
+    L.quiz.forEach(function (it, n) { var p = state.quiz.picked[n]; if (p !== undefined) { done++; if (p === it.ok) right++; } });
+    score.textContent = done ? 'Верно ' + right + ' из ' + done + (done === L.quiz.length ? ' · квиз пройден' : '') : '';
+  }
+  quizRender();
+
+  var reset = document.getElementById('reset');
+  if (reset) reset.addEventListener('click', function () {
+    state = {}; save();
+    if (deck) cardsStart();
+    quizRender();
+  });
+})();
+</script>
+
+</html>

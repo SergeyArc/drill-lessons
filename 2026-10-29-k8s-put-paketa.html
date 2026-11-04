@@ -123,6 +123,8 @@ button:focus-visible, .choices li:focus-visible { outline: 2px solid var(--accen
 .session li { margin: .5rem 0; }
 .sources { font-size: .9rem; }
 @media (prefers-reduced-motion: no-preference) { .btn, .choices li, .tabs button { transition: background .15s, border-color .15s; } }
+
+[hidden] { display: none !important; }
 </style>
 
 
@@ -134,6 +136,7 @@ button:focus-visible, .choices li:focus-visible { outline: 2px solid var(--accen
   <div class="meta">Кто прокладывает сеть Pod, что такое Service и где меняется адрес · ~15 минут</div>
   <div class="scope">
     <p><b>Границы примера.</b> Flannel в режиме host-gw, kube-proxy в режиме iptables, обычные Pod (не hostNetwork), Service типа ClusterIP. В других режимах детали отличаются — они отмечены по месту.</p>
+    <p><b>Перед уроком:</b> <a href="2026-11-04-linux-veth-bridge.html">Сеть в Linux, урок 1: veth и bridge</a>.</p>
   </div>
   <nav class="plan" aria-label="Разделы">
     <a href="#s-who">1. Кто что делает</a><a href="#s-path">2. Путь пакета</a><a href="#s-cards">3. Карточки</a><a href="#s-quiz">4. Квиз</a><a href="#s-session">5. На сессии</a>
