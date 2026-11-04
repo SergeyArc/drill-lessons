@@ -1,0 +1,508 @@
+<!doctype html>
+<html lang="ru">
+<title>Таблица маршрутов</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="robots" content="noindex, nofollow">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>/* Layout: одна колонка урока ~44rem; схемы и таблицы скроллятся внутри своих контейнеров */
+:root {
+  --bg: #f6f7f9; --surface: #ffffff; --sunk: #edf0f5;
+  --fg: #1b2230; --muted: #5b6474; --line: #d8dde6;
+  --accent: #1f3864; --accent-soft: #e3e9f4;
+  --dnat: #a8571a; --dnat-soft: #f8ebdf;
+  --ok: #2d6a4f; --ok-soft: #e5f2ea; --no: #9b2226; --no-soft: #f8e7e7;
+  --f-body: "IBM Plex Sans", "Segoe UI", Roboto, Arial, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #12161d; --surface: #19202a; --sunk: #202834;
+  --fg: #e3e7ee; --muted: #98a1b0; --line: #2c3542;
+  --accent: #91afe3; --accent-soft: #223149;
+  --dnat: #f0a35e; --dnat-soft: #3a2a1c;
+  --ok: #74c69d; --ok-soft: #1b3127; --no: #f28b82; --no-soft: #3a2020; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #12161d; --surface: #19202a; --sunk: #202834;
+  --fg: #e3e7ee; --muted: #98a1b0; --line: #2c3542;
+  --accent: #91afe3; --accent-soft: #223149;
+  --dnat: #f0a35e; --dnat-soft: #3a2a1c;
+  --ok: #74c69d; --ok-soft: #1b3127; --no: #f28b82; --no-soft: #3a2020; color-scheme: dark }
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font: 16px/1.6 var(--f-body); margin: 0; }
+.wrap { max-width: 44rem; margin: 0 auto; padding-block: 1.5rem 4rem;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+h1 { font-size: 1.75rem; line-height: 1.25; margin: .25rem 0 0; color: var(--accent); text-wrap: balance; font-weight: 600; }
+h2 { font-size: 1.15rem; margin: 2.75rem 0 .75rem; color: var(--accent); font-weight: 600; text-wrap: balance; }
+h3 { font-size: 1rem; margin: 1.75rem 0 .25rem; font-weight: 600; }
+p { margin: .6rem 0; max-width: 65ch; }
+a { color: var(--accent); }
+.meta { color: var(--muted); font-size: .875rem; margin-top: .35rem; }
+.label { font: 500 .72rem/1.3 var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.backlink { font-size: .85rem; text-decoration: none; }
+code { font-family: var(--f-mono); font-size: .9em; background: var(--sunk); padding: .05rem .3rem; border-radius: 3px; }
+.plan { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: 1.25rem; }
+.plan a { font-size: .85rem; text-decoration: none; border: 1px solid var(--line); padding: .2rem .65rem; border-radius: 999px; background: var(--surface); }
+.plan a:hover, .plan a:focus-visible { border-color: var(--accent); }
+
+.scope { margin-top: 1.25rem; padding: .75rem 1rem; border: 1px dashed var(--line); border-radius: 8px; font-size: .92rem; }
+.scope p { margin: .15rem 0; }
+
+.tbl { overflow-x: auto; margin: 1rem 0; }
+table { border-collapse: collapse; width: 100%; min-width: 32rem; font-size: .92rem; }
+th, td { text-align: left; padding: .5rem .6rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-weight: 600; color: var(--muted); font-size: .8rem; }
+.pairs { display: grid; grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr)); gap: .75rem; margin: 1.25rem 0; }
+.pair { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: .8rem 1rem; min-width: 0; }
+.pair p { margin: .35rem 0 0; font-size: .95rem; }
+.key { border-left: 3px solid var(--accent); padding: .3rem 0 .3rem .9rem; margin: 1.25rem 0; }
+.key p { margin: .2rem 0; }
+.aside { color: var(--muted); font-size: .92rem; }
+
+ol.chain, ol.walk { list-style: none; padding: 0; margin: .9rem 0 0; display: grid; gap: .35rem; counter-reset: s; }
+ol.chain li, ol.walk li { counter-increment: s; display: grid; grid-template-columns: 2rem 1fr; gap: .5rem; align-items: baseline; padding: .45rem .6rem; border-radius: 6px; }
+ol.chain li::before, ol.walk li::before { content: counter(s); font: 500 .8rem var(--f-mono); color: var(--muted); text-align: right; }
+ol li > span { min-width: 0; }
+ol.walk li.hl { background: var(--dnat-soft); }
+ol.walk li.hl b { color: var(--dnat); }
+.who { display: block; font: .8rem var(--f-mono); color: var(--muted); }
+
+.scheme { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: .75rem; margin-top: 1rem; }
+.scheme svg { display: block; min-width: 640px; width: 100%; height: auto; }
+.scheme text { font-family: var(--f-mono); font-size: 12px; fill: var(--fg); }
+.scheme .lbl { fill: var(--muted); font-size: 11px; }
+.scheme .node { fill: var(--sunk); stroke: var(--line); }
+.scheme .pod { fill: var(--accent-soft); stroke: var(--accent); }
+.scheme .box { fill: var(--surface); stroke: var(--accent); }
+.scheme .wire { stroke: var(--muted); stroke-width: 1.5; fill: none; }
+.scheme .route { fill: var(--surface); stroke: var(--line); stroke-dasharray: 3 3; }
+.scheme .path { stroke: var(--accent); stroke-width: 3; fill: none; stroke-linecap: round; opacity: .85; }
+.scheme .svc-only { display: none; }
+.scheme.svc .svc-only { display: inline; }
+.scheme .dnatbox { fill: var(--dnat-soft); stroke: var(--dnat); }
+.scheme .dnattxt { fill: var(--dnat); font-weight: 500; }
+
+.tabs { display: flex; gap: .4rem; margin-top: 1rem; flex-wrap: wrap; }
+.tabs button { font: 500 .9rem var(--f-body); padding: .4rem .9rem; border-radius: 6px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); cursor: pointer; }
+.tabs button[aria-selected="true"] { background: var(--accent); border-color: var(--accent); color: var(--bg); }
+button:focus-visible, .choices li:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.open-q { background: var(--surface); border: 1px solid var(--accent); border-radius: 8px; padding: .9rem 1.1rem; margin: 1.5rem 0; }
+.open-q .q { font-weight: 600; margin-top: .25rem; }
+.open-q .answer { margin-top: .8rem; padding: .8rem 1rem; background: var(--sunk); border-radius: 6px; }
+
+.deck { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 1.25rem; margin-top: 1rem; }
+.deck-top { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; font-size: .85rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.card-q { font-size: 1.15rem; font-weight: 600; margin: 1rem 0 .4rem; text-wrap: balance; }
+.card-hint { font-size: .85rem; color: var(--muted); }
+.card-a { margin-top: 1rem; padding: .9rem 1rem; background: var(--sunk); border-radius: 6px; }
+.row { display: flex; gap: .5rem; flex-wrap: wrap; margin-top: 1rem; }
+.btn { font: 500 .9rem var(--f-body); padding: .5rem 1rem; border-radius: 6px; border: 1px solid var(--accent); background: transparent; color: var(--accent); cursor: pointer; }
+.btn.primary { background: var(--accent); color: var(--bg); }
+.btn.ok { border-color: var(--ok); color: var(--ok); }
+.btn.no { border-color: var(--no); color: var(--no); }
+.btn.small { font-size: .8rem; padding: .3rem .7rem; }
+.misses { margin-top: 1rem; padding-left: 1.2rem; }
+.misses li { margin: .4rem 0; }
+.misses .a { color: var(--muted); font-size: .92rem; }
+
+.qz { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 1rem 1.15rem; margin: 1rem 0; }
+.qz-text { font-weight: 600; }
+.choices { list-style: none; padding: 0; margin: .8rem 0 0; display: grid; gap: .45rem; }
+.choices li { border: 1px solid var(--line); border-radius: 6px; padding: .55rem .8rem; cursor: pointer; background: var(--bg); }
+.choices li:hover { border-color: var(--accent); }
+.choices.done li { cursor: default; }
+.choices li.correct { border-color: var(--ok); background: var(--ok-soft); }
+.choices li.wrong { border-color: var(--no); background: var(--no-soft); }
+.choices li.dim { opacity: .55; }
+.explain { margin-top: .7rem; font-size: .92rem; color: var(--muted); }
+.score { font-variant-numeric: tabular-nums; color: var(--muted); font-size: .9rem; }
+.foot { margin-top: 3rem; display: flex; gap: 1rem; flex-wrap: wrap; align-items: center; justify-content: space-between; font-size: .85rem; color: var(--muted); }
+.session li { margin: .5rem 0; }
+.sources { font-size: .9rem; }
+@media (prefers-reduced-motion: no-preference) { .btn, .choices li, .tabs button { transition: background .15s, border-color .15s; } }
+
+[hidden] { display: none !important; }
+
+.scheme.svc .podonly { display: none; }
+.consolidate { background: var(--surface); border: 1px solid var(--accent); border-radius: 8px; padding: .9rem 1.1rem; margin-top: 1rem; }
+.consolidate a.btn { display: inline-block; text-decoration: none; margin: .4rem .4rem 0 0; }
+pre.rt { background: var(--surface); border: 1px solid var(--line, #d8dde6); border-radius: 8px; padding: .7rem .9rem; overflow-x: auto; font: 13px/1.55 "IBM Plex Mono", ui-monospace, monospace; margin: .4rem 0 1rem; }
+</style>
+
+
+<div class="wrap">
+<header>
+  <a class="backlink" href="index.html">← Все уроки</a>
+  <div class="label" style="margin-top:1rem">Сеть в Linux · урок 2 из 5</div>
+  <h1>Таблица маршрутов</h1>
+  <div class="meta">Куда ядро отправляет пакет и почему у каждого namespace своя таблица · ~12 минут</div>
+  <div class="scope">
+    <p><b>Сценарий серии.</b> Хост, песочницы A (<code>10.0.0.2</code>) и B (<code>10.0.0.3</code>) в своих network namespace, veth к <code>br0</code> (<code>10.0.0.1</code>). Новое в этом уроке: у хоста есть свой выход — <code>eth0</code> с адресом <code>203.0.113.10</code>, за ним шлюз провайдера <code>203.0.113.1</code> (адреса из диапазона для документации).</p>
+    <p><b>Границы примера.</b> IPv4, одна основная таблица маршрутов на namespace. Схемы, где выбор таблицы зависит от правил (policy routing), — за пределами серии.</p>
+    <p><b>Перед уроком:</b> <a href="2026-11-04-linux-veth-bridge.html">урок 1 «veth и bridge»</a> — кадр и пакет, MAC, ARP, кадр на MAC br0 уходит в IP-стек хоста.</p>
+  </div>
+  <nav class="plan" aria-label="Разделы">
+    <a href="#s-what">1. Что решает таблица</a><a href="#s-two">2. Две таблицы</a><a href="#s-fwd">3. ip_forward</a><a href="#s-cards">4. Карточки</a><a href="#s-quiz">5. Квиз</a><a href="#s-session">6. Самопроверка</a><a href="#s-fix">7. Закрепить</a>
+  </nav>
+</header>
+
+<section id="s-what">
+<h2>1. Что решает таблица маршрутов</h2>
+<p><b>Задача.</b> Пакет попал в ядро — от процесса или с интерфейса. У него есть адрес назначения, и ядру нужно решить одно: <b>в какой интерфейс его отдать и кому следующему</b>. Это решение принимается по таблице маршрутов.</p>
+
+<h3>Три слова до начала</h3>
+<div class="pairs">
+  <div class="pair"><div class="label">Подсеть и маска</div><p><code>10.0.0.0/24</code> — все адреса, у которых первые 24 бита (три первых числа) такие же: от <code>10.0.0.0</code> до <code>10.0.0.255</code>. Число после косой черты — длина маски: чем она больше, тем уже и точнее подсеть. <code>/32</code> — один адрес, <code>/0</code> — все адреса вообще.</p></div>
+  <div class="pair"><div class="label">Шлюз</div><p>Машина в твоём L2-сегменте, которой отдают пакет для чужой сети, чтобы она отправила его дальше. Для песочниц шлюз — <code>10.0.0.1</code> на br0.</p></div>
+  <div class="pair"><div class="label">Таблица маршрутов</div><p>Список строк в ядре: «для такой-то подсети — отдать через такой-то интерфейс, и если нужно — через такой-то шлюз». Есть в любой Linux-машине и <b>своя в каждом network namespace</b>: она часть сетевого стека.</p></div>
+</div>
+
+<div class="tbl"><table>
+<thead><tr><th>Элемент</th><th>Кто ставит</th><th>Что решает</th><th>Как проверить</th></tr></thead>
+<tbody>
+<tr><td>Строка своей подсети</td><td>Ядро само, когда интерфейсу назначают адрес с маской (<code>10.0.0.2/24</code>)</td><td>Адресаты этой подсети — соседи по L2: отдать напрямую в интерфейс, кадр на MAC самого адресата</td><td>в <code>ip route</code> строка с <code>proto kernel</code> и без <code>via</code></td></tr>
+<tr><td>Маршрут по умолчанию</td><td>Тот, кто настраивает сеть: для песочницы — рантайм или его сетевой плагин, для хоста — система при подключении к сети</td><td>Всё, для чего нет строки точнее: отдать шлюзу. Кадр — на MAC шлюза, IP назначения в пакете прежний</td><td>строка <code>default via …</code></td></tr>
+<tr><td>Выбор строки</td><td>Ядро при каждой отправке</td><td>Если адрес подходит под несколько строк, выигрывает самая точная — с самой длинной маской. <code>default</code> — это <code>/0</code>, он проигрывает любой другой подходящей строке</td><td>какая строка подходит под адрес и какая из них длиннее</td></tr>
+</tbody></table></div>
+
+<p><b>Таблица выбирает только следующий шаг</b> — интерфейс и, если нужно, шлюз. Весь путь до адресата не знает никто: следующая машина решает заново по своей таблице. Адреса в пакете маршрутизация не меняет (уменьшается только счётчик TTL, защита от бесконечных петель).</p>
+
+<div class="pairs">
+  <div class="pair"><div class="label">таблица маршрутов ≠ iptables</div><p>Таблица маршрутов решает, <b>куда</b> отправить пакет. iptables и nftables — что с ним <b>сделать</b>: пропустить, отбросить, переписать адрес. Это разные части ядра; правила netfilter стоят на пути пакета, но интерфейс не выбирают — урок 3.</p></div>
+  <div class="pair"><div class="label">маршрут ≠ DNAT</div><p>DNAT меняет адрес назначения в самом пакете. Маршрут адрес не трогает — только выбирает, куда пакет отдать по тому адресу, что в нём стоит. Подмена адресов — урок 4.</p></div>
+  <div class="pair"><div class="label">сосед ≠ шлюз</div><p>Соседу кадр идёт на его собственный MAC. Шлюзу — кадр на MAC шлюза, а в пакете всё равно адрес конечного получателя. Шлюз — не адресат, а следующий шаг.</p></div>
+</div>
+
+<div class="open-q">
+  <div class="label">Открытый вопрос — вслух</div>
+  <div class="q">В таблице песочницы A две строки: <code>10.0.0.0/24</code> напрямую и <code>default</code> через <code>10.0.0.1</code>. A шлёт пакет на <code>10.0.0.3</code> и на <code>8.8.8.8</code>. Под какие строки подходит каждый адрес и какая выигрывает?</div>
+  <div class="row"><button class="btn small">Ответил вслух — показать эталон</button></div>
+  <div class="answer" hidden><code>10.0.0.3</code> подходит под обе: под <code>/24</code> и под <code>default</code> (<code>/0</code> подходит под всё). Выигрывает <code>/24</code> — маска длиннее, поэтому пакет идёт напрямую в eth0, кадр на MAC B. <code>8.8.8.8</code> подходит только под <code>default</code> — пакет отдаётся шлюзу <code>10.0.0.1</code>, кадр на MAC br0, в пакете по-прежнему <code>8.8.8.8</code>.</div>
+</div>
+</section>
+
+<section id="s-two">
+<h2>2. Две таблицы на одном пути</h2>
+<p>Так выглядит вывод <code>ip route</code> в namespace песочницы A и в namespace хоста. Колонки читаются так: подсеть · <code>via</code> — шлюз · <code>dev</code> — интерфейс · <code>proto kernel</code> — строку поставило ядро при назначении адреса · <code>src</code> — свой адрес на этом интерфейсе.</p>
+<div class="label">Песочница A</div>
+<pre class="rt">default via 10.0.0.1 dev eth0
+10.0.0.0/24 dev eth0 proto kernel scope link src 10.0.0.2</pre>
+<div class="label">Хост</div>
+<pre class="rt">default via 203.0.113.1 dev eth0
+10.0.0.0/24 dev br0 proto kernel scope link src 10.0.0.1
+203.0.113.0/24 dev eth0 proto kernel scope link src 203.0.113.10</pre>
+<p class="aside"><code>eth0</code> у песочницы и <code>eth0</code> у хоста — разные интерфейсы в разных namespace, совпадают только имена. Строка <code>10.0.0.0/24 dev br0</code> на хосте появилась сама, когда на br0 назначили <code>10.0.0.1/24</code>: по ней хост знает, что песочницы — за br0.</p>
+
+<div class="tabs" role="tablist" aria-label="Сценарий">
+  <button role="tab" aria-selected="true" data-panel="walk-ab">A → B</button>
+  <button role="tab" aria-selected="false" data-panel="walk-net" data-scheme="svc">A → 8.8.8.8</button>
+</div>
+
+<div class="scheme" id="scheme">
+<svg viewBox="0 0 760 380" role="img" aria-label="Хост: песочницы A и B со своими таблицами маршрутов, veth к br0, IP-стек хоста с таблицей хоста и ip_forward, eth0 хоста; путь A → B через bridge или A → 8.8.8.8 через таблицу хоста и eth0">
+  <rect class="node" x="10" y="10" width="740" height="360" rx="10"/>
+  <text x="26" y="34" class="lbl">ХОСТ · namespace хоста</text>
+  <polyline class="path podonly" points="200,127 335,127 500,190 500,200 335,263 200,263"/>
+  <polyline class="path svc-only" points="200,127 335,127 500,190 640,120 667,140 667,310"/>
+
+  <rect class="pod" x="30" y="56" width="200" height="98" rx="8"/>
+  <text x="44" y="78">Песочница A</text>
+  <text x="44" y="96" class="lbl">своя таблица маршрутов:</text>
+  <text x="44" y="110" class="lbl">/24 напрямую · default → .1</text>
+  <text x="44" y="136">eth0 · 10.0.0.2</text>
+
+  <rect class="pod" x="30" y="226" width="200" height="98" rx="8"/>
+  <text x="44" y="248">Песочница B</text>
+  <text x="44" y="266" class="lbl">своя таблица маршрутов</text>
+  <text x="44" y="304">eth0 · 10.0.0.3</text>
+
+  <rect class="box" x="290" y="110" width="90" height="34" rx="6"/>
+  <text x="308" y="132">vethA</text>
+  <rect class="box" x="290" y="246" width="90" height="34" rx="6"/>
+  <text x="308" y="268">vethB</text>
+  <line class="wire" x1="230" y1="127" x2="290" y2="127"/>
+  <line class="wire" x1="230" y1="263" x2="290" y2="263"/>
+
+  <rect class="box" x="430" y="160" width="140" height="70" rx="8"/>
+  <text x="446" y="184">br0 · коммутатор</text>
+  <text x="446" y="202" class="lbl">решает по MAC</text>
+  <text x="446" y="220">IP 10.0.0.1</text>
+  <line class="wire" x1="380" y1="127" x2="430" y2="180"/>
+  <line class="wire" x1="380" y1="263" x2="430" y2="212"/>
+
+  <rect class="route" x="560" y="44" width="182" height="96" rx="8"/>
+  <text x="572" y="68">IP-стек хоста</text>
+  <text x="572" y="88" class="lbl">таблица маршрутов хоста</text>
+  <text x="572" y="104" class="lbl">ip_forward: пересылать</text>
+  <text x="572" y="118" class="lbl">чужие пакеты или нет</text>
+  <line class="wire" x1="570" y1="180" x2="610" y2="140"/>
+
+  <rect class="box" x="566" y="290" width="174" height="54" rx="6"/>
+  <text x="578" y="312">eth0 хоста</text>
+  <text x="578" y="330" class="lbl">203.0.113.10 → шлюз .1</text>
+  <line class="wire" x1="667" y1="140" x2="667" y2="290"/>
+</svg>
+</div>
+
+<ol class="walk" id="walk-ab">
+  <li><span>Процесс в A шлёт пакет на <code>10.0.0.3</code>. Подходят обе строки таблицы A, выигрывает <code>10.0.0.0/24</code> — маска длиннее. Шлюза в строке нет: отдать в eth0 напрямую.<span class="who">кто решает: ядро в namespace A, по таблице A</span></span></li>
+  <li><span>ARP за MAC B, кадр на MAC B уходит по veth в br0, br0 отдаёт его в порт vethB — всё как в уроке 1.<span class="who">bridge, по MAC</span></span></li>
+  <li><span>B принимает пакет. <b>Таблица маршрутов хоста в этом пути не участвовала:</b> кадр не был адресован хосту, его переслал bridge.</span></li>
+</ol>
+<ol class="walk" id="walk-net" hidden>
+  <li><span>Процесс в A шлёт пакет на <code>8.8.8.8</code>. Подходит только <code>default via 10.0.0.1</code>: отдать шлюзу через eth0.<span class="who">кто решает: ядро в namespace A, по таблице A</span></span></li>
+  <li><span>Кадр на MAC br0 (шлюза), в пакете — <code>8.8.8.8</code>. br0 видит свой MAC и передаёт пакет IP-стеку хоста (урок 1).</span></li>
+  <li class="hl"><span><b>Хост сначала смотрит: это мне?</b> <code>8.8.8.8</code> — не адрес хоста. Значит, пакет чужой и его надо переслать дальше — это разрешено, только если в namespace хоста включён <code>ip_forward</code>. Выключен — пакет молча отброшен.<span class="who">кто решает: ядро хоста, по ip_forward</span></span></li>
+  <li><span>Пересылка разрешена — таблица хоста. <code>8.8.8.8</code> подходит только под <code>default via 203.0.113.1 dev eth0</code>: отдать шлюзу провайдера через eth0 хоста.<span class="who">кто решает: ядро хоста, по таблице хоста</span></span></li>
+  <li><span>Кадр на MAC шлюза провайдера, в пакете по-прежнему <code>8.8.8.8</code> — и адрес отправителя по-прежнему <code>10.0.0.2</code>. Дальше решает таблица шлюза провайдера. Почему ответ на <code>10.0.0.2</code> не вернётся и что с этим делают — урок 4; какие правила стоят на этом пути — урок 3.</span></li>
+</ol>
+
+<div class="key">
+  <p><b>Каждая машина и каждый namespace решает по своей таблице и только следующий шаг.</b> A решила «шлюзу 10.0.0.1», хост — «шлюзу провайдера через eth0». Чтобы хост вообще взялся за чужой пакет, нужен ip_forward.</p>
+</div>
+<p class="aside">microVM без bridge (продолжение строки из урока 1): на хосте вместо общей подсети за br0 стоит строка «адрес гостя → dev tap0». Хост маршрутизирует пакет прямо в TAP, коммутатор не нужен — в сегменте всего два конца.</p>
+
+<div class="open-q">
+  <div class="label">Открытый вопрос — вслух</div>
+  <div class="q">Пакет уходит с твоего VPS на <code>8.8.8.8</code>. Кто решает, через какой интерфейс он уйдёт, и участвует ли в этом iptables?</div>
+  <div class="row"><button class="btn small">Ответил вслух — показать эталон</button></div>
+  <div class="answer" hidden>Интерфейс выбирает ядро VPS по своей таблице маршрутов: под <code>8.8.8.8</code> подходит только <code>default</code>, значит — шлюзу провайдера через внешний интерфейс. iptables дорогу не выбирает: пакет проходит точки, где стоят его правила, и они могут его отбросить или переписать адрес, но решение «куда» принимает таблица маршрутов.</div>
+</div>
+</section>
+
+<section id="s-fwd">
+<h2>3. ip_forward и молчаливые поломки</h2>
+<p><b>ip_forward</b> — настройка ядра: пересылать ли между интерфейсами пакеты, адресованные <b>не этой машине</b>. По умолчанию выключена: обычный компьютер не должен работать маршрутизатором. Настройка относится к сетевому стеку того namespace, который пересылает: в нашем сценарии — namespace хоста.</p>
+<div class="pairs">
+  <div class="pair"><div class="label">доставка ≠ пересылка</div><p>Пакет на <code>10.0.0.1</code> адресован самому хосту — ядро отдаёт его процессу на хосте, ip_forward не нужен. Пакет на <code>8.8.8.8</code> хосту не адресован — это пересылка, и без ip_forward она молча не происходит.</p></div>
+</div>
+
+<p><b>Молчаливые неисправности.</b> Ошибок при запуске нет — видно только поведение. Это подсказки, что проверить.</p>
+<div class="tbl"><table>
+<thead><tr><th>Что видно</th><th>Что может быть и что проверить</th></tr></thead>
+<tbody>
+<tr><td>A видит B, но не видит ни шлюз, ни интернет</td><td>в таблице A нет маршрута по умолчанию — проверить таблицу внутри namespace A, а не на хосте</td></tr>
+<tr><td>A видит B и <code>10.0.0.1</code>, но не интернет</td><td>на хосте выключен ip_forward: до хоста доставка работает, пересылка — нет. Другие причины (правила, NAT) — уроки 3–4</td></tr>
+<tr><td>в песочнице только loopback, наружу ничего</td><td>нет внешнего интерфейса: ломается на поиске маршрута — строки для адреса просто нет</td></tr>
+<tr><td>пакет из A уходит с хоста, ответ не приходит</td><td>отправитель <code>10.0.0.2</code> — приватный адрес, снаружи до него нет маршрута. Это не ошибка таблицы — урок 4</td></tr>
+</tbody></table></div>
+
+<div class="open-q">
+  <div class="label">Открытый вопрос — вслух</div>
+  <div class="q">На хосте выключен ip_forward. Почему A по-прежнему достаёт до <code>10.0.0.1</code>, а до <code>8.8.8.8</code> — нет?</div>
+  <div class="row"><button class="btn small">Ответил вслух — показать эталон</button></div>
+  <div class="answer" hidden><code>10.0.0.1</code> — адрес самого хоста: пакет доставляется хосту, пересылка не нужна. <code>8.8.8.8</code> хосту не принадлежит: пакет надо переслать в другой интерфейс, а без ip_forward ядро чужие пакеты не пересылает и молча их отбрасывает.</div>
+</div>
+</section>
+
+<section id="s-cards">
+<h2>4. Карточки</h2>
+<p>Сначала вслух, потом открыть ответ. Прогресс сохраняется в этом браузере.</p>
+<div class="deck" id="deck" aria-live="polite"></div>
+</section>
+
+<section id="s-quiz">
+<h2>5. Квиз на различение</h2>
+<p>Варианты перемешиваются при каждой загрузке.</p>
+<div id="quiz"></div>
+<div class="score" id="score"></div>
+</section>
+
+<section id="s-session" class="session">
+<h2>6. Самопроверка</h2>
+<p>Без подсказок, вслух. На сессии будет новый случай, не из этого списка.</p>
+<ul>
+  <li>Без схемы проведи пакет из A на <code>8.8.8.8</code> до выхода из eth0 хоста. На каждом шаге: чья таблица или настройка решает и какая строка выигрывает.</li>
+  <li>Случай: A видит B, а <code>10.0.0.1</code> и интернет — нет. На какой машине и в какой таблице искать?</li>
+  <li>Связь: почему ответ от <code>8.8.8.8</code> на <code>10.0.0.2</code> не вернётся, даже если обе таблицы и ip_forward настроены верно?</li>
+</ul>
+</section>
+
+<section id="s-fix">
+<h2>7. Закрепить</h2>
+<div class="consolidate">
+  <p><b>Когда:</b> завтра — карточки этого урока ещё раз (<a href="#s-cards">раздел 4</a>, «Все заново»), потом через 3–4 дня. Полные модули linux-04 и k8s-03 — когда их содержание пройдено: в них есть то, что серия ещё не объяснила.</p>
+  <p class="aside">Следующий урок серии — «netfilter: цепочки и путь пакета»: что ядро делает с пакетом по пути, и почему пакет песочницы идёт через FORWARD, а не OUTPUT.</p>
+</div>
+</section>
+
+<section class="sources">
+<h2>Источники</h2>
+<ul>
+  <li><a href="https://man7.org/linux/man-pages/man8/ip-route.8.html">ip-route(8)</a> — <code>default</code> равен <code>0/0</code>; <code>via</code> — адрес следующего маршрутизатора; <code>proto kernel</code> — маршрут поставлен ядром при автонастройке.</li>
+  <li><a href="https://manpages.ubuntu.com/manpages/resolute/man8/ip-address.8.html">ip-address(8)</a> — <code>noprefixroute</code>: не создавать автоматически маршрут для подсети добавленного адреса; без флага он создаётся.</li>
+  <li><a href="https://docs.kernel.org/networking/fib_trie.html">fib_trie — документация ядра</a> — поиск маршрута ищет самый длинный подходящий префикс (longest matching prefix).</li>
+  <li><a href="https://docs.kernel.org/networking/ip-sysctl.html">ip-sysctl — документация ядра</a> — <code>ip_forward</code>: «Forward Packets between interfaces», по умолчанию 0 (выключено).</li>
+  <li><a href="https://man7.org/linux/man-pages/man7/network_namespaces.7.html">network_namespaces(7)</a> — у каждого network namespace свои таблицы маршрутов и правила фильтрации.</li>
+</ul>
+</section>
+
+<div class="foot"><a href="index.html">← Все уроки</a><button class="btn small" id="reset">Сбросить прогресс</button></div>
+</div>
+
+<script>
+window.LESSON = { id: '2026-11-04-linux-route', cards: [{"q": "Что такое таблица маршрутов?", "a": "Список в ядре любой Linux-машины, по которому для адреса назначения выбирается, через какой шлюз или интерфейс отправить пакет.", "deck": "linux-04-set-izolyatsii"}, {"q": "Что такое маршрут по умолчанию?", "a": "Строка таблицы маршрутов default (0.0.0.0/0): всё, для чего нет более точной строки, отправляется через указанный в ней шлюз.", "deck": "linux-04-set-izolyatsii"}, {"q": "Какую строку таблицы маршрутов выбирает ядро, если адрес подходит под несколько?", "a": "Самую точную, с самой длинной маской, поэтому маршрут по умолчанию срабатывает, только когда не подошла ни одна другая строка.", "deck": "linux-04-set-izolyatsii"}, {"q": "Откуда в таблице маршрутов берётся строка своей подсети?", "a": "Ядро добавляет её само, когда интерфейсу назначают адрес с маской, например 10.0.0.2/24.", "deck": "linux-04-set-izolyatsii"}, {"q": "Чем строка таблицы маршрутов без шлюза отличается от строки через шлюз?", "a": "Без шлюза адресат в том же L2-сегменте и кадр идёт на его MAC; через шлюз кадр идёт на MAC шлюза, а IP назначения в пакете не меняется.", "deck": "linux-04-set-izolyatsii"}, {"q": "Что выбирает таблица маршрутов: весь путь до адресата или только следующий шаг?", "a": "Только следующий шаг (интерфейс и, если нужно, шлюз); дальше решает таблица следующей машины.", "deck": "linux-04-set-izolyatsii"}, {"q": "Чем таблица маршрутов отличается от iptables?", "a": "Таблица маршрутов решает, куда отправить пакет, а iptables — что с ним сделать: переписать адрес, отбросить или пропустить.", "deck": "linux-04-set-izolyatsii"}, {"q": "Что такое ip_forward?", "a": "Настройка ядра, которая разрешает пересылать между интерфейсами пакеты, адресованные не этой машине; по умолчанию выключена.", "deck": "linux-04-set-izolyatsii"}, {"q": "Что будет с пакетом песочницы в интернет, если на хосте выключен ip_forward?", "a": "Хост молча его отбросит: пакет адресован не хосту, а пересылать чужие пакеты хосту не разрешено.", "deck": "linux-04-set-izolyatsii"}, {"q": "На каком шаге ломается попытка выйти в сеть из network namespace без внешних интерфейсов?", "a": "На поиске маршрута — запуск самой сетевой утилиты проходит нормально.", "deck": "linux-01-namespaces"}, {"q": "Чем DNAT отличается от маршрутизации?", "a": "DNAT меняет адрес назначения пакета, а маршрут только выбирает, куда пакет отправить.", "deck": "k8s-03-set-i-bezopasnost"}, {"q": "Что будет, если на Node выключена пересылка пакетов (ip_forward)?", "a": "Пакеты в Pod других Node молча отбрасываются на Node отправителя.", "deck": "k8s-03-set-i-bezopasnost"}], quiz: [
+  { q: 'Пакет уходит с машины на 8.8.8.8. Кто выбирает, через какой интерфейс он уйдёт?',
+    ok: 'Ядро по таблице маршрутов',
+    no: ['iptables — правилом на выходе', 'bridge — по MAC получателя', 'Правило DNAT — по адресу назначения'],
+    ex: 'Таблица маршрутов решает «куда», правила iptables/nftables — «что сделать» с пакетом по пути. bridge решает только внутри своего L2-сегмента.' },
+  { q: 'В таблице A строки 10.0.0.0/24 напрямую и default через 10.0.0.1. Какая выиграет для пакета на 10.0.0.3?',
+    ok: '10.0.0.0/24 — у неё маска длиннее',
+    no: ['default — она стоит в списке первой', 'default — через шлюз надёжнее', 'Обе: пакет уйдёт двумя путями'],
+    ex: 'Под адрес подходят обе строки, выигрывает самая точная. default — это /0, он проигрывает любой подходящей строке. Порядок вывода ip route роли не играет.' },
+  { q: 'A отдаёт пакет на 8.8.8.8 шлюзу 10.0.0.1. Какой адрес назначения в пакете?',
+    ok: '8.8.8.8 — маршрут адрес не меняет',
+    no: ['10.0.0.1 — адрес шлюза', '203.0.113.10 — адрес хоста', 'MAC br0 — адрес следующего шага'],
+    ex: 'Шлюзу адресован кадр (MAC br0), а пакет — по-прежнему конечному получателю. Менять адрес в пакете умеет NAT, не маршрут.' },
+  { q: 'Правило на хосте переписывает адрес назначения пакета. Что это?',
+    ok: 'DNAT — «что сделать»; куда пакет отправить, решает потом таблица маршрутов',
+    no: ['Маршрутизация — она выбирает адрес назначения', 'Маршрут по умолчанию', 'Пересылка через ip_forward'],
+    ex: 'Маршрут выбирает только следующий шаг для того адреса, что уже стоит в пакете. Переписать адрес — работа NAT, урок 4.' },
+  { q: 'На хосте выключен ip_forward. Что видно из песочницы A?',
+    ok: 'Ошибок нет: B и 10.0.0.1 доступны, интернет — нет',
+    no: ['A перестаёт видеть B', 'Запуск песочницы падает с ошибкой сети', 'Пакеты уходят в интернет, но без подмены адреса'],
+    ex: 'B доступна через bridge без участия хоста, 10.0.0.1 — доставка самому хосту. Не работает только пересылка чужих пакетов, и делается это молча.' },
+  { q: 'Откуда на хосте строка «10.0.0.0/24 dev br0»?',
+    ok: 'Ядро добавило её, когда на br0 назначили 10.0.0.1/24',
+    no: ['br0 сам выучил её по входящим кадрам', 'Её пишет iptables при старте песочницы', 'Её приносит ARP-ответ песочницы'],
+    ex: 'При назначении адреса с маской ядро само ставит строку подсети (proto kernel). bridge учит таблицу «MAC → порт», а не маршруты.' },
+  { q: 'Хост отдал пакет на 8.8.8.8 шлюзу провайдера. Что хост знает о дальнейшем пути?',
+    ok: 'Ничего: дальше решает таблица шлюза провайдера',
+    no: ['Весь путь до 8.8.8.8 — он записан в default', 'Путь до 8.8.8.8 узнаётся через ARP', 'Только последний шаг до 8.8.8.8'],
+    ex: 'Таблица маршрутов выбирает только следующий шаг. Каждая следующая машина решает заново по своей таблице.' }
+]};
+</script>
+<script>// Общий код уроков. Данные урока — в window.LESSON = { id, cards, quiz }.
+// Прогресс хранится в localStorage этого браузера; без него урок работает с нуля.
+(function () {
+  var L = window.LESSON;
+  if (!L || !L.id) throw new Error('window.LESSON.id не задан');
+  var KEY = 'drill:' + L.id;
+  var state = load();
+  function load() { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { return {}; } }
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} }
+  function shuffle(a) { for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]; }); }
+
+  // вкладки: кнопка .tabs button[data-panel]; data-scheme — класс для #scheme
+  document.querySelectorAll('.tabs').forEach(function (tabs) {
+    var btns = tabs.querySelectorAll('button[data-panel]');
+    btns.forEach(function (b) {
+      b.addEventListener('click', function () {
+        btns.forEach(function (x) {
+          x.setAttribute('aria-selected', String(x === b));
+          document.getElementById(x.dataset.panel).hidden = x !== b;
+        });
+        var sch = document.getElementById('scheme');
+        if (sch) sch.className = 'scheme' + (b.dataset.scheme ? ' ' + b.dataset.scheme : '');
+      });
+    });
+  });
+
+  // открытые вопросы: эталон под кнопкой, после своей попытки
+  document.querySelectorAll('.open-q').forEach(function (box) {
+    var btn = box.querySelector('button'), ans = box.querySelector('.answer');
+    btn.addEventListener('click', function () {
+      ans.hidden = !ans.hidden;
+      btn.textContent = ans.hidden ? 'Ответил вслух — показать эталон' : 'Скрыть эталон';
+    });
+  });
+
+  // карточки
+  var deck = document.getElementById('deck');
+  function cardsStart(only) {
+    var idx = only || L.cards.map(function (_, i) { return i; });
+    state.cards = { n: L.cards.length, order: shuffle(idx.slice()), pos: 0, missed: [], knew: 0 };
+    save(); cardsShow();
+  }
+  function cardsShow() {
+    var s = state.cards;
+    if (s.pos >= s.order.length) return cardsFinish();
+    var c = L.cards[s.order[s.pos]];
+    deck.innerHTML =
+      '<div class="deck-top"><span>' + (s.pos + 1) + ' из ' + s.order.length + '</span><span>знал ' + s.knew + ' · не знал ' + s.missed.length + '</span></div>' +
+      '<div class="card-q">' + esc(c.q) + '</div><div class="card-hint">' + esc(c.deck) + '</div>' +
+      '<div class="row" id="card-row"><button class="btn primary" id="reveal">Ответил вслух — показать</button></div>';
+    document.getElementById('reveal').addEventListener('click', function () {
+      document.getElementById('card-row').outerHTML = '<div class="card-a">' + esc(c.a) + '</div>' +
+        '<div class="row"><button class="btn ok" id="yes">Знал</button><button class="btn no" id="no">Не знал</button></div>';
+      document.getElementById('yes').addEventListener('click', function () { s.knew++; s.pos++; save(); cardsShow(); });
+      document.getElementById('no').addEventListener('click', function () { s.missed.push(s.order[s.pos]); s.pos++; save(); cardsShow(); });
+      document.getElementById('yes').focus();
+    });
+  }
+  function cardsFinish() {
+    var s = state.cards;
+    var h = '<div class="deck-top"><span>Готово: ' + s.order.length + ' карточек</span><span>знал ' + s.knew + ' · не знал ' + s.missed.length + '</span></div>';
+    if (s.missed.length) {
+      h += '<p>Не вспомнилось — назови на сессии:</p><ol class="misses">' +
+        s.missed.map(function (i) { var c = L.cards[i]; return '<li>' + esc(c.q) + '<div class="a">' + esc(c.a) + '</div></li>'; }).join('') + '</ol>' +
+        '<div class="row"><button class="btn primary" id="again-miss">Ещё раз только эти</button><button class="btn" id="again-all">Все заново</button></div>';
+    } else {
+      h += '<p>Все вспомнились. Дальше квиз: он проверяет различение, а не память.</p><div class="row"><button class="btn" id="again-all">Все заново</button></div>';
+    }
+    deck.innerHTML = h;
+    var m = document.getElementById('again-miss');
+    if (m) { var list = s.missed.slice(); m.addEventListener('click', function () { cardsStart(list); }); }
+    document.getElementById('again-all').addEventListener('click', function () { cardsStart(); });
+  }
+  if (deck) {
+    if (state.cards && state.cards.n === L.cards.length) cardsShow(); else cardsStart();
+  }
+
+  // квиз: варианты перемешиваются при каждой загрузке
+  var quiz = document.getElementById('quiz'), score = document.getElementById('score');
+  function quizRender() {
+    if (!quiz) return;
+    if (!state.quiz || state.quiz.n !== L.quiz.length) state.quiz = { n: L.quiz.length, picked: {} };
+    quiz.innerHTML = '';
+    L.quiz.forEach(function (it, n) {
+      var box = document.createElement('div'); box.className = 'qz';
+      var opts = shuffle([{ t: it.ok, c: true }].concat(it.no.map(function (t) { return { t: t, c: false }; })));
+      box.innerHTML = '<div class="qz-text">' + (n + 1) + '. ' + esc(it.q) + '</div><ul class="choices">' +
+        opts.map(function (o) { return '<li tabindex="0" data-c="' + o.c + '">' + esc(o.t) + '</li>'; }).join('') +
+        '</ul><div class="explain" hidden>' + esc(it.ex) + '</div>';
+      var ul = box.querySelector('ul');
+      function mark(li) {
+        ul.classList.add('done');
+        ul.querySelectorAll('li').forEach(function (x) {
+          if (x.dataset.c === 'true') x.classList.add('correct');
+          else if (x === li) x.classList.add('wrong');
+          else x.classList.add('dim');
+        });
+        box.querySelector('.explain').hidden = false;
+      }
+      function pick(li) {
+        if (ul.classList.contains('done')) return;
+        state.quiz.picked[n] = li.textContent; save(); mark(li); quizScore();
+      }
+      ul.querySelectorAll('li').forEach(function (li) {
+        li.addEventListener('click', function () { pick(li); });
+        li.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(li); } });
+        if (state.quiz.picked[n] === li.textContent) mark(li);
+      });
+      quiz.appendChild(box);
+    });
+    quizScore();
+  }
+  function quizScore() {
+    if (!score) return;
+    var done = 0, right = 0;
+    L.quiz.forEach(function (it, n) { var p = state.quiz.picked[n]; if (p !== undefined) { done++; if (p === it.ok) right++; } });
+    score.textContent = done ? 'Верно ' + right + ' из ' + done + (done === L.quiz.length ? ' · квиз пройден' : '') : '';
+  }
+  quizRender();
+
+  var reset = document.getElementById('reset');
+  if (reset) reset.addEventListener('click', function () {
+    state = {}; save();
+    if (deck) cardsStart();
+    quizRender();
+  });
+})();
+</script>
+
+</html>
