@@ -1,0 +1,506 @@
+<!doctype html>
+<html lang="ru">
+<title>netfilter: цепочки и путь пакета</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="robots" content="noindex, nofollow">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>/* Layout: одна колонка урока ~44rem; схемы и таблицы скроллятся внутри своих контейнеров */
+:root {
+  --bg: #f6f7f9; --surface: #ffffff; --sunk: #edf0f5;
+  --fg: #1b2230; --muted: #5b6474; --line: #d8dde6;
+  --accent: #1f3864; --accent-soft: #e3e9f4;
+  --dnat: #a8571a; --dnat-soft: #f8ebdf;
+  --ok: #2d6a4f; --ok-soft: #e5f2ea; --no: #9b2226; --no-soft: #f8e7e7;
+  --f-body: "IBM Plex Sans", "Segoe UI", Roboto, Arial, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #12161d; --surface: #19202a; --sunk: #202834;
+  --fg: #e3e7ee; --muted: #98a1b0; --line: #2c3542;
+  --accent: #91afe3; --accent-soft: #223149;
+  --dnat: #f0a35e; --dnat-soft: #3a2a1c;
+  --ok: #74c69d; --ok-soft: #1b3127; --no: #f28b82; --no-soft: #3a2020; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #12161d; --surface: #19202a; --sunk: #202834;
+  --fg: #e3e7ee; --muted: #98a1b0; --line: #2c3542;
+  --accent: #91afe3; --accent-soft: #223149;
+  --dnat: #f0a35e; --dnat-soft: #3a2a1c;
+  --ok: #74c69d; --ok-soft: #1b3127; --no: #f28b82; --no-soft: #3a2020; color-scheme: dark }
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font: 16px/1.6 var(--f-body); margin: 0; }
+.wrap { max-width: 44rem; margin: 0 auto; padding-block: 1.5rem 4rem;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+h1 { font-size: 1.75rem; line-height: 1.25; margin: .25rem 0 0; color: var(--accent); text-wrap: balance; font-weight: 600; }
+h2 { font-size: 1.15rem; margin: 2.75rem 0 .75rem; color: var(--accent); font-weight: 600; text-wrap: balance; }
+h3 { font-size: 1rem; margin: 1.75rem 0 .25rem; font-weight: 600; }
+p { margin: .6rem 0; max-width: 65ch; }
+a { color: var(--accent); }
+.meta { color: var(--muted); font-size: .875rem; margin-top: .35rem; }
+.label { font: 500 .72rem/1.3 var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.backlink { font-size: .85rem; text-decoration: none; }
+code { font-family: var(--f-mono); font-size: .9em; background: var(--sunk); padding: .05rem .3rem; border-radius: 3px; }
+.plan { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: 1.25rem; }
+.plan a { font-size: .85rem; text-decoration: none; border: 1px solid var(--line); padding: .2rem .65rem; border-radius: 999px; background: var(--surface); }
+.plan a:hover, .plan a:focus-visible { border-color: var(--accent); }
+
+.scope { margin-top: 1.25rem; padding: .75rem 1rem; border: 1px dashed var(--line); border-radius: 8px; font-size: .92rem; }
+.scope p { margin: .15rem 0; }
+
+.tbl { overflow-x: auto; margin: 1rem 0; }
+table { border-collapse: collapse; width: 100%; min-width: 32rem; font-size: .92rem; }
+th, td { text-align: left; padding: .5rem .6rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-weight: 600; color: var(--muted); font-size: .8rem; }
+.pairs { display: grid; grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr)); gap: .75rem; margin: 1.25rem 0; }
+.pair { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: .8rem 1rem; min-width: 0; }
+.pair p { margin: .35rem 0 0; font-size: .95rem; }
+.key { border-left: 3px solid var(--accent); padding: .3rem 0 .3rem .9rem; margin: 1.25rem 0; }
+.key p { margin: .2rem 0; }
+.aside { color: var(--muted); font-size: .92rem; }
+
+ol.chain, ol.walk { list-style: none; padding: 0; margin: .9rem 0 0; display: grid; gap: .35rem; counter-reset: s; }
+ol.chain li, ol.walk li { counter-increment: s; display: grid; grid-template-columns: 2rem 1fr; gap: .5rem; align-items: baseline; padding: .45rem .6rem; border-radius: 6px; }
+ol.chain li::before, ol.walk li::before { content: counter(s); font: 500 .8rem var(--f-mono); color: var(--muted); text-align: right; }
+ol li > span { min-width: 0; }
+ol.walk li.hl { background: var(--dnat-soft); }
+ol.walk li.hl b { color: var(--dnat); }
+.who { display: block; font: .8rem var(--f-mono); color: var(--muted); }
+
+.scheme { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: .75rem; margin-top: 1rem; }
+.scheme svg { display: block; min-width: 640px; width: 100%; height: auto; }
+.scheme text { font-family: var(--f-mono); font-size: 12px; fill: var(--fg); }
+.scheme .lbl { fill: var(--muted); font-size: 11px; }
+.scheme .node { fill: var(--sunk); stroke: var(--line); }
+.scheme .pod { fill: var(--accent-soft); stroke: var(--accent); }
+.scheme .box { fill: var(--surface); stroke: var(--accent); }
+.scheme .wire { stroke: var(--muted); stroke-width: 1.5; fill: none; }
+.scheme .route { fill: var(--surface); stroke: var(--line); stroke-dasharray: 3 3; }
+.scheme .path { stroke: var(--accent); stroke-width: 3; fill: none; stroke-linecap: round; opacity: .85; }
+.scheme .svc-only { display: none; }
+.scheme.svc .svc-only { display: inline; }
+.scheme .dnatbox { fill: var(--dnat-soft); stroke: var(--dnat); }
+.scheme .dnattxt { fill: var(--dnat); font-weight: 500; }
+
+.tabs { display: flex; gap: .4rem; margin-top: 1rem; flex-wrap: wrap; }
+.tabs button { font: 500 .9rem var(--f-body); padding: .4rem .9rem; border-radius: 6px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); cursor: pointer; }
+.tabs button[aria-selected="true"] { background: var(--accent); border-color: var(--accent); color: var(--bg); }
+button:focus-visible, .choices li:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.open-q { background: var(--surface); border: 1px solid var(--accent); border-radius: 8px; padding: .9rem 1.1rem; margin: 1.5rem 0; }
+.open-q .q { font-weight: 600; margin-top: .25rem; }
+.open-q .answer { margin-top: .8rem; padding: .8rem 1rem; background: var(--sunk); border-radius: 6px; }
+
+.deck { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 1.25rem; margin-top: 1rem; }
+.deck-top { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; font-size: .85rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.card-q { font-size: 1.15rem; font-weight: 600; margin: 1rem 0 .4rem; text-wrap: balance; }
+.card-hint { font-size: .85rem; color: var(--muted); }
+.card-a { margin-top: 1rem; padding: .9rem 1rem; background: var(--sunk); border-radius: 6px; }
+.row { display: flex; gap: .5rem; flex-wrap: wrap; margin-top: 1rem; }
+.btn { font: 500 .9rem var(--f-body); padding: .5rem 1rem; border-radius: 6px; border: 1px solid var(--accent); background: transparent; color: var(--accent); cursor: pointer; }
+.btn.primary { background: var(--accent); color: var(--bg); }
+.btn.ok { border-color: var(--ok); color: var(--ok); }
+.btn.no { border-color: var(--no); color: var(--no); }
+.btn.small { font-size: .8rem; padding: .3rem .7rem; }
+.misses { margin-top: 1rem; padding-left: 1.2rem; }
+.misses li { margin: .4rem 0; }
+.misses .a { color: var(--muted); font-size: .92rem; }
+
+.qz { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 1rem 1.15rem; margin: 1rem 0; }
+.qz-text { font-weight: 600; }
+.choices { list-style: none; padding: 0; margin: .8rem 0 0; display: grid; gap: .45rem; }
+.choices li { border: 1px solid var(--line); border-radius: 6px; padding: .55rem .8rem; cursor: pointer; background: var(--bg); }
+.choices li:hover { border-color: var(--accent); }
+.choices.done li { cursor: default; }
+.choices li.correct { border-color: var(--ok); background: var(--ok-soft); }
+.choices li.wrong { border-color: var(--no); background: var(--no-soft); }
+.choices li.dim { opacity: .55; }
+.explain { margin-top: .7rem; font-size: .92rem; color: var(--muted); }
+.score { font-variant-numeric: tabular-nums; color: var(--muted); font-size: .9rem; }
+.foot { margin-top: 3rem; display: flex; gap: 1rem; flex-wrap: wrap; align-items: center; justify-content: space-between; font-size: .85rem; color: var(--muted); }
+.session li { margin: .5rem 0; }
+.sources { font-size: .9rem; }
+@media (prefers-reduced-motion: no-preference) { .btn, .choices li, .tabs button { transition: background .15s, border-color .15s; } }
+
+[hidden] { display: none !important; }
+
+.consolidate { background: var(--surface); border: 1px solid var(--accent); border-radius: 8px; padding: .9rem 1.1rem; margin-top: 1rem; }
+.consolidate a.btn { display: inline-block; text-decoration: none; margin: .4rem .4rem 0 0; }
+.scheme .chain { opacity: .3; transition: opacity .15s; }
+.scheme.fwd .c-pre, .scheme.fwd .c-fwd, .scheme.fwd .c-post { opacity: 1; }
+.scheme.out .c-out, .scheme.out .c-post { opacity: 1; }
+.scheme.in  .c-pre, .scheme.in  .c-in { opacity: 1; }
+</style>
+
+
+<div class="wrap">
+<header>
+  <a class="backlink" href="index.html">← Все уроки</a>
+  <div class="label" style="margin-top:1rem">Сеть в Linux · урок 3 из 5</div>
+  <h1>netfilter: цепочки и путь пакета</h1>
+  <div class="meta">Что ядро делает с пакетом по пути и почему пакет песочницы идёт через FORWARD, а не OUTPUT · ~14 минут</div>
+  <div class="scope">
+    <p><b>Сценарий серии.</b> Хост, песочницы A (<code>10.0.0.2</code>) и B (<code>10.0.0.3</code>) в своих network namespace, veth к <code>br0</code> (<code>10.0.0.1</code>), выход хоста — <code>eth0</code> (<code>203.0.113.10</code>). Новое в этом уроке: пакет по пути через ядро проходит фиксированные точки, и в каждой стоят правила, решающие его судьбу.</p>
+    <p><b>Границы примера.</b> IPv4. Разбираем точки пути и выбор цепочки, а не синтаксис <code>nft</code> или <code>iptables</code>. Подмена адресов (SNAT/DNAT) и отслеживание соединений — урок 4. «Цепочки» называю в терминах iptables; где nftables устроен иначе, помечено по месту.</p>
+    <p><b>Перед уроком:</b> <a href="2026-11-04-linux-veth-bridge.html">урок 1 «veth и bridge»</a> (кадр на MAC br0 уходит в IP-стек хоста) и <a href="2026-11-04-linux-route.html">урок 2 «Таблица маршрутов»</a> (решение «кому пакет» принимает ядро по таблице).</p>
+  </div>
+  <nav class="plan" aria-label="Разделы">
+    <a href="#s-what">1. netfilter и цепочки</a><a href="#s-path">2. Путь пакета</a><a href="#s-where">3. Где фильтровать</a><a href="#s-cards">4. Карточки</a><a href="#s-quiz">5. Квиз</a><a href="#s-session">6. Самопроверка</a><a href="#s-fix">7. Закрепить</a>
+  </nav>
+</header>
+
+<section id="s-what">
+<h2>1. netfilter и цепочки</h2>
+<p><b>Задача.</b> Таблица маршрутов (урок 2) решает только, <b>куда</b> отдать пакет. Но по пути через ядро его ещё нужно <b>пропустить, отбросить или переписать</b> — это делает другая часть ядра. Пакет проходит несколько фиксированных точек, и в каждой ядро прогоняет список правил. Эти правила и есть фильтрация и NAT.</p>
+
+<h3>Четыре слова до начала</h3>
+<div class="pairs">
+  <div class="pair"><div class="label">netfilter</div><p>Подсистема ядра: на фиксированных точках пути пакета она прогоняет правила. <code>iptables</code> и <code>nftables</code> сами пакеты не трогают — это две программы, которые <b>записывают</b> правила в netfilter (nftables сменил iptables).</p></div>
+  <div class="pair"><div class="label">hook — точка</div><p>Фиксированное место на пути пакета через ядро, где netfilter вызывает привязанные к нему правила. Точек пять: <code>prerouting</code>, <code>input</code>, <code>forward</code>, <code>output</code>, <code>postrouting</code>.</p></div>
+  <div class="pair"><div class="label">цепочка</div><p>Упорядоченный список правил, привязанный к одной точке; пакет идёт по нему сверху вниз. В iptables на точках стоят встроенные цепочки с теми же именами (<code>INPUT</code>, <code>FORWARD</code>…); в nftables готовых нет — цепочку к точке заводишь сам.</p></div>
+  <div class="pair"><div class="label">таблица</div><p>Группа цепочек под одну задачу — фильтрацию или трансляцию адресов. Не путать с таблицей маршрутов: та выбирает дорогу, эта хранит правила.</p></div>
+</div>
+
+<div class="pairs">
+  <div class="pair"><div class="label">цепочка ≠ таблица</div><p>Цепочка — список правил <b>в одной точке</b> пути. Таблица — <b>группа цепочек</b>. Склейка из разбора: «цепочка» и «таблица» — не одно и то же, и ни то ни другое не таблица маршрутов.</p></div>
+  <div class="pair"><div class="label">netfilter ≠ таблица маршрутов</div><p>Таблица маршрутов решает «куда отправить», netfilter — «что сделать»: пропустить, отбросить, переписать адрес. Разные части ядра на одном пути.</p></div>
+</div>
+
+<div class="open-q">
+  <div class="label">Открытый вопрос — вслух</div>
+  <div class="q">Своими словами: чем различаются точка (hook), цепочка и таблица? Объясни на правиле, которое запрещает песочнице выходить в интернет.</div>
+  <div class="row"><button class="btn small">Ответил вслух — показать эталон</button></div>
+  <div class="answer" hidden>Точка — место на пути пакета (например, <code>forward</code>: пакет проходит её, когда хост его пересылает). Цепочка — список правил, привязанный к этой точке, по нему пакет идёт сверху вниз. Таблица — группа таких цепочек под одну задачу (фильтрация). Правило «запретить песочнице в интернет» — это строка в цепочке на точке <code>forward</code>, в таблице фильтрации.</div>
+</div>
+</section>
+
+<section id="s-path">
+<h2>2. Путь пакета: какую цепочку он проходит</h2>
+<p>Куда пакет адресован, решает, в какую цепочку он попадёт. Развилку делает выбор маршрута: <b>это хосту</b> — пакет идёт в INPUT; <b>через хост дальше</b> — в FORWARD; <b>рождён самим хостом</b> — в OUTPUT. Переключай вкладки — на схеме подсвечены точки, которые проходит каждый трафик.</p>
+
+<div class="tabs" role="tablist" aria-label="Какой трафик">
+  <button role="tab" aria-selected="true" data-panel="walk-fwd" data-scheme="fwd">A → интернет (через хост)</button>
+  <button role="tab" aria-selected="false" data-panel="walk-out" data-scheme="out">сам хост → наружу</button>
+  <button role="tab" aria-selected="false" data-panel="walk-in" data-scheme="in">кто-то → хост</button>
+</div>
+
+<div class="scheme fwd" id="scheme">
+<svg viewBox="0 0 900 340" role="img" aria-label="Точки netfilter в ядре хоста: вход с интерфейса, PREROUTING, выбор маршрута, затем INPUT к локальному процессу, либо FORWARD через хост, либо OUTPUT от хоста, все сходятся в POSTROUTING и выход в интерфейс">
+  <rect class="node" x="10" y="10" width="880" height="320" rx="10"/>
+  <text x="26" y="34" class="lbl">netfilter в ядре хоста · точки на пути пакета</text>
+
+  <rect class="pod" x="24" y="150" width="104" height="48" rx="8"/>
+  <text x="38" y="172">вход</text><text x="38" y="190" class="lbl">с интерфейса</text>
+
+  <g class="chain c-pre">
+    <rect class="box" x="150" y="150" width="124" height="48" rx="8"/>
+    <text x="164" y="172">PREROUTING</text><text x="164" y="190" class="lbl">точка входа</text>
+  </g>
+
+  <rect class="route" x="300" y="144" width="118" height="60" rx="8"/>
+  <text x="314" y="170">маршрут</text><text x="314" y="188" class="lbl">это хосту?</text>
+
+  <g class="chain c-in">
+    <rect class="box" x="444" y="66" width="108" height="46" rx="8"/>
+    <text x="458" y="90">INPUT</text><text x="458" y="106" class="lbl">хосту</text>
+  </g>
+  <rect class="pod" x="580" y="60" width="150" height="58" rx="8"/>
+  <text x="594" y="84">процесс</text><text x="594" y="104" class="lbl">на хосте</text>
+
+  <g class="chain c-out">
+    <rect class="box" x="444" y="150" width="108" height="46" rx="8"/>
+    <text x="458" y="174">OUTPUT</text><text x="458" y="190" class="lbl">от хоста</text>
+  </g>
+
+  <g class="chain c-fwd">
+    <rect class="box" x="444" y="236" width="108" height="46" rx="8"/>
+    <text x="458" y="260">FORWARD</text><text x="458" y="276" class="lbl">через хост</text>
+  </g>
+
+  <g class="chain c-post">
+    <rect class="box" x="600" y="200" width="132" height="48" rx="8"/>
+    <text x="614" y="222">POSTROUTING</text><text x="614" y="240" class="lbl">перед выходом</text>
+  </g>
+
+  <rect class="pod" x="756" y="200" width="118" height="48" rx="8"/>
+  <text x="770" y="222">выход</text><text x="770" y="240" class="lbl">в интерфейс</text>
+
+  <line class="wire" x1="128" y1="174" x2="150" y2="174"/>
+  <line class="wire" x1="274" y1="174" x2="300" y2="174"/>
+  <polyline class="wire" points="359,144 359,89 444,89"/>
+  <line class="wire" x1="552" y1="89" x2="580" y2="89"/>
+  <polyline class="wire" points="359,204 359,259 444,259"/>
+  <polyline class="wire" points="655,118 655,173 552,173"/>
+  <polyline class="wire" points="552,173 576,173 576,224 600,224"/>
+  <polyline class="wire" points="552,259 576,259 576,224 600,224"/>
+  <line class="wire" x1="732" y1="224" x2="756" y2="224"/>
+</svg>
+</div>
+
+<ol class="walk" id="walk-fwd">
+  <li><span>Пакет из A на <code>8.8.8.8</code> дошёл до ядра хоста — кадр на MAC br0 ушёл в IP-стек (уроки 1–2). Он входит в точку <code>PREROUTING</code>.<span class="who">кто решает: ядро хоста</span></span></li>
+  <li><span>Выбор маршрута: <code>8.8.8.8</code> — не адрес хоста, пакет пойдёт дальше. Значит он попадает в <code>FORWARD</code> — не в INPUT (это «хосту») и не в OUTPUT (это «от хоста»).<span class="who">ядро хоста, по таблице и по тому, кому адресован</span></span></li>
+  <li><span>В <code>FORWARD</code> срабатывают правила «пересылать этот пакет или нет». Прошёл — <code>POSTROUTING</code> перед выходом в eth0.<span class="who">цепочка на точке forward</span></span></li>
+  <li class="hl"><span>Правило, которое должно резать трафик песочниц наружу, обязано стоять в <code>FORWARD</code>. Повесишь на OUTPUT — пакет его не встретит.</span></li>
+</ol>
+<ol class="walk" id="walk-out" hidden>
+  <li><span>Процесс на самом хосте (например, обновление пакетов) шлёт пакет наружу. Пакет <b>рождён хостом</b> → идёт в <code>OUTPUT</code>, минуя PREROUTING и INPUT.<span class="who">кто решает: ядро хоста</span></span></li>
+  <li><span>Выбор маршрута по таблице хоста, затем <code>POSTROUTING</code> и выход. INPUT и FORWARD такой пакет не проходит.<span class="who">ядро хоста, по своей таблице</span></span></li>
+</ol>
+<ol class="walk" id="walk-in" hidden>
+  <li><span>Кто-то шлёт пакет на <code>10.0.0.1</code> — это адрес br0, то есть адрес самого хоста. Пакет входит в <code>PREROUTING</code>.<span class="who">кто решает: ядро хоста</span></span></li>
+  <li><span>Выбор маршрута: адрес принадлежит хосту → пакет идёт в <code>INPUT</code> и дальше локальному процессу. <code>FORWARD</code> ни при чём — ничего никуда не пересылается.<span class="who">ядро хоста, по тому, кому адресован</span></span></li>
+</ol>
+
+<div class="key">
+  <p><b>Куда пакет адресован — то и решает, в какую цепочку он попадёт.</b> Через хост — FORWARD; хосту — INPUT; от хоста — OUTPUT. Правило действует, только если стоит в той цепочке, которую пакет реально проходит.</p>
+</div>
+
+<div class="pairs">
+  <div class="pair"><div class="label">FORWARD ≠ OUTPUT</div><p>OUTPUT видит только пакеты, рождённые самим хостом. Пакет песочницы хост не порождал — он его пересылает, и такой пакет идёт через FORWARD. Фильтр трафика песочниц, повешенный на OUTPUT, молча не срабатывает (склейка из разбора: путал их, когда шёл SNAT).</p></div>
+  <div class="pair"><div class="label">PREROUTING / POSTROUTING</div><p>PREROUTING — сразу на входе в ядро, до выбора маршрута; POSTROUTING — перед самым выходом, после. Здесь они только точки на пути; подмена адреса в них — урок 4.</p></div>
+</div>
+
+<div class="open-q">
+  <div class="label">Открытый вопрос — вслух</div>
+  <div class="q">Трафик песочницы наружу проходит через хост. В какую цепочку попадёт её пакет и почему не в OUTPUT?</div>
+  <div class="row"><button class="btn small">Ответил вслух — показать эталон</button></div>
+  <div class="answer" hidden>В <code>FORWARD</code>: пакет не адресован хосту и не рождён на нём, хост его только пересылает. OUTPUT — для пакетов, которые породил сам хост, поэтому трафик песочницы туда не попадает, и правило на OUTPUT его не увидит.</div>
+</div>
+</section>
+
+<section id="s-where">
+<h2>3. Где фильтровать: политика и bridge</h2>
+<p><b>default DROP + точечные разрешения.</b> У цепочки есть политика по умолчанию. <code>DROP</code> означает: отбросить всё, что не разрешено явными правилами, — закрыто по умолчанию, открыто по списку. Так сделана изоляция на Firecracker-платформе: в namespace запуска цепочка на точке forward с policy drop и allowlist.</p>
+
+<p><b>А видит B — где ставить запрет?</b> Зависит от того, на одном они bridge или на разных.</p>
+<div class="tbl"><table>
+<thead><tr><th>Где песочницы</th><th>Как идёт трафик A→B</th><th>Чем режется</th></tr></thead>
+<tbody>
+<tr><td>На разных bridge</td><td>Через IP-маршрутизацию хоста — пакет проходит цепочку <code>FORWARD</code></td><td>Правилом в <code>FORWARD</code></td></tr>
+<tr><td>На одном bridge</td><td>bridge пересылает кадр по MAC внутри L2-сегмента; пакет не поднимается в IP-маршрутизацию и в FORWARD не попадает</td><td>Только правилом уровня bridge (семейство <code>bridge</code> в nftables, бывший ebtables)</td></tr>
+</tbody></table></div>
+
+<p><b>Признаки неверной реализации.</b> Ошибок нет — есть только поведение.</p>
+<div class="tbl"><table>
+<thead><tr><th>Что видно</th><th>Что проверить</th></tr></thead>
+<tbody>
+<tr><td>Запрет «A→B» стоит, а они всё равно общаются</td><td>На одном ли они bridge: если да, правило <code>FORWARD</code> их не видит — трафик идёт внутри bridge, нужен фильтр уровня bridge (стенд С-15)</td></tr>
+<tr><td>Запрет висит на выходном интерфейсе хоста (<code>-o eth0</code> / defaultLink), наружу режет, а бокс↔бокс нет</td><td>То же: трафик между боксами на общем bridge не проходит через этот интерфейс и через FORWARD (С-15)</td></tr>
+<tr><td>Фильтр по адресу есть, но среда шлёт пакеты с чужого адреса</td><td>У среды <code>CAP_NET_RAW</code> и на bridge нет антиспуфа — проверка адреса обходится на L2 (С-21; сам CAP_NET_RAW — урок про capabilities)</td></tr>
+<tr><td>policy drop в FORWARD, но наружу всё равно ходит</td><td>Трафик идёт не через FORWARD (например, локально с хоста — через OUTPUT) или выше есть разрешающее правило</td></tr>
+</tbody></table></div>
+
+<div class="open-q">
+  <div class="label">Открытый вопрос — вслух</div>
+  <div class="q">На общем bridge стоит правило в FORWARD: «боксу A запретить всё». Бокс A пингует бокс B на том же bridge. Сработает ли правило?</div>
+  <div class="row"><button class="btn small">Ответил вслух — показать эталон</button></div>
+  <div class="answer" hidden>Нет. A и B в одном L2-сегменте, bridge пересылает кадр по MAC, пакет не поднимается в IP-маршрутизацию хоста и в цепочку <code>FORWARD</code> не попадает. Правило FORWARD его не видит — фильтровать нужно на уровне bridge. Это и есть поломка С-15.</div>
+</div>
+</section>
+
+<section id="s-cards">
+<h2>4. Карточки</h2>
+<p>Сначала вслух, потом открыть ответ. Прогресс сохраняется в этом браузере.</p>
+<div class="deck" id="deck" aria-live="polite"></div>
+</section>
+
+<section id="s-quiz">
+<h2>5. Квиз на различение</h2>
+<p>Варианты перемешиваются при каждой загрузке.</p>
+<div id="quiz"></div>
+<div class="score" id="score"></div>
+</section>
+
+<section id="s-session" class="session">
+<h2>6. Самопроверка</h2>
+<p>Без подсказок. Отвечай в чате проекта, по одному вопросу — разберём. На сессии будет ещё и новый случай, не из этого списка.</p>
+<ul>
+  <li>Без схемы: пакет из A на <code>8.8.8.8</code> и пакет, которым сам хост обновляет пакеты. Какие точки и цепочки проходит каждый и чем они расходятся?</li>
+  <li>Случай: правило «запретить боксу A всё» висит в FORWARD, а A спокойно ходит к B на том же bridge. Где ошибка и куда перенести фильтр?</li>
+  <li>Связь: почему запрет на выходном интерфейсе (<code>-o eth0</code>) защищает выход наружу, но не изолирует боксы друг от друга?</li>
+</ul>
+</section>
+
+<section id="s-fix">
+<h2>7. Закрепить</h2>
+<div class="consolidate">
+  <p><b>Когда:</b> завтра — карточки этого урока ещё раз (<a href="#s-cards">раздел 4</a>, «Все заново»), потом через 3–4 дня. Полный модуль linux-04 — когда его содержание пройдено серией.</p>
+  <p class="aside">Следующий урок серии — «NAT и conntrack»: как песочница с приватным адресом выходит наружу и как распознаётся ответ. Тогда же закроются PREROUTING/POSTROUTING как места подмены адреса.</p>
+</div>
+</section>
+
+<section class="sources">
+<h2>Источники</h2>
+<ul>
+  <li><a href="https://netfilter.org/projects/nftables/manpage.html">nft(8), netfilter.org</a> — точки (hooks) для IPv4/IPv6/inet: <code>prerouting</code> — все входящие; <code>input</code> — доставляемые локально; <code>forward</code> — пересылаемые другому хосту; <code>output</code> — отправленные локальной системой; <code>postrouting</code> — все уходящие.</li>
+  <li><a href="https://wiki.nftables.org/wiki-nftables/index.php/Configuring_chains">Configuring chains — nftables wiki</a> — в nftables нет предопределённых цепочек INPUT/OUTPUT; цепочку привязывают к точке через <code>type … hook …</code>.</li>
+  <li><a href="https://wiki.nftables.org/wiki-nftables/index.php/Bridge_filtering">Bridge filtering — nftables wiki</a> — семейство <code>bridge</code> (замена ebtables) фильтрует трафик, пересылаемый между портами bridge на L2.</li>
+  <li><a href="https://man7.org/linux/man-pages/man7/network_namespaces.7.html">network_namespaces(7)</a> — у каждого network namespace свои таблицы маршрутов и свои правила netfilter.</li>
+</ul>
+</section>
+
+<div class="foot"><a href="index.html">← Все уроки</a><button class="btn small" id="reset">Сбросить прогресс</button></div>
+</div>
+
+<script>
+window.LESSON = { id: '2026-11-12-linux-netfilter', cards: [{"q": "Что такое netfilter?", "a": "Подсистема ядра Linux, которая в фиксированных точках пути пакета вызывает правила фильтрации и трансляции адресов.", "deck": "linux-04-set-izolyatsii"}, {"q": "Что такое nftables?", "a": "nftables — программа и язык правил, которыми задают, что netfilter делает с пакетом; сменила iptables, писавшую в ту же подсистему ядра.", "deck": "linux-04-set-izolyatsii"}, {"q": "Что такое hook в netfilter?", "a": "Фиксированная точка на пути пакета через ядро, к которой привязываются цепочки правил.", "deck": "linux-04-set-izolyatsii"}, {"q": "Что такое таблица правил в nftables?", "a": "Группа цепочек одного семейства под одну задачу — фильтрацию или трансляцию адресов.", "deck": "linux-04-set-izolyatsii"}, {"q": "Что такое цепочка в iptables?", "a": "Упорядоченный список правил, который ядро проходит для пакета в определённой точке его пути.", "deck": "k8s-03-set-i-bezopasnost"}, {"q": "Через какую цепочку проходит пакет, адресованный самому хосту?", "a": "Через INPUT — ядро доставляет его локальному процессу хоста.", "deck": "linux-04-set-izolyatsii"}, {"q": "Через какую цепочку проходит пакет, который хост только пересылает дальше?", "a": "Через FORWARD — пакет не адресован хосту и не рождён на нём, а идёт через него к другому адресу.", "deck": "linux-04-set-izolyatsii"}, {"q": "Почему исходящий пакет песочницы идёт через FORWARD, а не OUTPUT?", "a": "OUTPUT — для пакетов, рождённых самим хостом; пакет песочницы хост лишь пересылает, поэтому он попадает в FORWARD.", "deck": "linux-04-set-izolyatsii"}, {"q": "Что отмечают точки PREROUTING и POSTROUTING на пути пакета?", "a": "PREROUTING — вход в ядро до выбора маршрута, POSTROUTING — перед самым выходом после выбора маршрута.", "deck": "linux-04-set-izolyatsii"}, {"q": "Что значит политика цепочки default DROP с точечными разрешениями?", "a": "Цепочка отбрасывает всё, кроме явно разрешённого отдельными правилами: закрыто по умолчанию, открыто по списку.", "deck": "linux-04-set-izolyatsii"}, {"q": "Почему правило фильтрации на выходном интерфейсе хоста не изолирует песочницы на одном bridge?", "a": "Трафик между ними идёт внутри bridge, не проходит через тот интерфейс и FORWARD, поэтому правило его не видит.", "deck": "linux-04-set-izolyatsii"}, {"q": "Чем таблица маршрутов отличается от iptables?", "a": "Таблица маршрутов решает, куда отправить пакет, а iptables — что с ним сделать: переписать адрес, отбросить или пропустить.", "deck": "linux-04-set-izolyatsii"}], quiz: [
+  { q: 'Пакет из песочницы в интернет проходит через хост. В какой цепочке его резать?',
+    ok: 'FORWARD — хост его пересылает',
+    no: ['OUTPUT — это трафик, отправленный самим хостом', 'INPUT — это трафик, адресованный хосту', 'Правилом в таблице маршрутов'],
+    ex: 'Пакет не адресован хосту и не рождён на нём — он только пересылается, значит FORWARD. OUTPUT/INPUT — другие точки, а таблица маршрутов решает «куда», не «пропускать ли».' },
+  { q: 'На одном bridge два бокса, запрет висит на выходном интерфейсе наружу (-o eth0). Ходят ли боксы друг к другу?',
+    ok: 'Да: их трафик идёт внутри bridge и мимо этого правила',
+    no: ['Нет, правило режет и этот трафик', 'Нет, разные namespace их изолируют', 'Да, но только пока включён ip_forward'],
+    ex: 'Трафик бокс↔бокс на общем bridge идёт на L2 по MAC, не поднимается в IP-маршрутизацию и не проходит через eth0 и FORWARD. Это поломка С-15: нужен фильтр уровня bridge.' },
+  { q: 'Что такое цепочка?',
+    ok: 'Упорядоченный список правил в одной точке пути пакета',
+    no: ['Группа цепочек под одну задачу', 'Фиксированная точка на пути пакета', 'Список маршрутов ядра'],
+    ex: 'Группа цепочек — это таблица; точка на пути — это hook; список маршрутов — таблица маршрутов. Цепочка — правила в одной точке, проходятся сверху вниз.' },
+  { q: 'Процесс на самом хосте шлёт пакет наружу. Какую цепочку он проходит?',
+    ok: 'OUTPUT — пакет рождён хостом',
+    no: ['FORWARD — как любой исходящий', 'INPUT — раз он от процесса', 'Сначала PREROUTING, потом INPUT'],
+    ex: 'OUTPUT видит именно пакеты, которые породил сам хост. FORWARD — для пересылаемых чужих, INPUT — для адресованных хосту, PREROUTING — для входящих с интерфейса.' },
+  { q: 'Правило фильтрации решает, куда отправить пакет?',
+    ok: 'Нет: «куда» решает таблица маршрутов, netfilter решает «что сделать»',
+    no: ['Да, через цепочку FORWARD', 'Да, политикой default DROP', 'Да, в точке PREROUTING'],
+    ex: 'Таблица маршрутов выбирает следующий шаг; правила netfilter на точках пути пропускают, отбрасывают или переписывают пакет, но интерфейс не выбирают.' },
+  { q: 'В цепочке FORWARD политика default DROP. Пакет, для которого нет разрешающего правила?',
+    ok: 'Молча отброшен',
+    no: ['Пропущен — явного запрета ведь нет', 'Отправителю всегда возвращается ошибка', 'Уходит в цепочку INPUT'],
+    ex: 'default DROP = закрыто по умолчанию: без явного разрешения пакет отбрасывается, и без отдельного правила-ответа это происходит молча.' }
+]};
+</script>
+<script>// Общий код уроков. Данные урока — в window.LESSON = { id, cards, quiz }.
+// Прогресс хранится в localStorage этого браузера; без него урок работает с нуля.
+(function () {
+  var L = window.LESSON;
+  if (!L || !L.id) throw new Error('window.LESSON.id не задан');
+  var KEY = 'drill:' + L.id;
+  var state = load();
+  function load() { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { return {}; } }
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} }
+  function shuffle(a) { for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]; }); }
+
+  // вкладки: кнопка .tabs button[data-panel]; data-scheme — класс для #scheme
+  document.querySelectorAll('.tabs').forEach(function (tabs) {
+    var btns = tabs.querySelectorAll('button[data-panel]');
+    btns.forEach(function (b) {
+      b.addEventListener('click', function () {
+        btns.forEach(function (x) {
+          x.setAttribute('aria-selected', String(x === b));
+          document.getElementById(x.dataset.panel).hidden = x !== b;
+        });
+        var sch = document.getElementById('scheme');
+        if (sch) sch.className = 'scheme' + (b.dataset.scheme ? ' ' + b.dataset.scheme : '');
+      });
+    });
+  });
+
+  // открытые вопросы: эталон под кнопкой, после своей попытки
+  document.querySelectorAll('.open-q').forEach(function (box) {
+    var btn = box.querySelector('button'), ans = box.querySelector('.answer');
+    btn.addEventListener('click', function () {
+      ans.hidden = !ans.hidden;
+      btn.textContent = ans.hidden ? 'Ответил вслух — показать эталон' : 'Скрыть эталон';
+    });
+  });
+
+  // карточки
+  var deck = document.getElementById('deck');
+  function cardsStart(only) {
+    var idx = only || L.cards.map(function (_, i) { return i; });
+    state.cards = { n: L.cards.length, order: shuffle(idx.slice()), pos: 0, missed: [], knew: 0 };
+    save(); cardsShow();
+  }
+  function cardsShow() {
+    var s = state.cards;
+    if (s.pos >= s.order.length) return cardsFinish();
+    var c = L.cards[s.order[s.pos]];
+    deck.innerHTML =
+      '<div class="deck-top"><span>' + (s.pos + 1) + ' из ' + s.order.length + '</span><span>знал ' + s.knew + ' · не знал ' + s.missed.length + '</span></div>' +
+      '<div class="card-q">' + esc(c.q) + '</div><div class="card-hint">' + esc(c.deck) + '</div>' +
+      '<div class="row" id="card-row"><button class="btn primary" id="reveal">Ответил вслух — показать</button></div>';
+    document.getElementById('reveal').addEventListener('click', function () {
+      document.getElementById('card-row').outerHTML = '<div class="card-a">' + esc(c.a) + '</div>' +
+        '<div class="row"><button class="btn ok" id="yes">Знал</button><button class="btn no" id="no">Не знал</button></div>';
+      document.getElementById('yes').addEventListener('click', function () { s.knew++; s.pos++; save(); cardsShow(); });
+      document.getElementById('no').addEventListener('click', function () { s.missed.push(s.order[s.pos]); s.pos++; save(); cardsShow(); });
+      document.getElementById('yes').focus();
+    });
+  }
+  function cardsFinish() {
+    var s = state.cards;
+    var h = '<div class="deck-top"><span>Готово: ' + s.order.length + ' карточек</span><span>знал ' + s.knew + ' · не знал ' + s.missed.length + '</span></div>';
+    if (s.missed.length) {
+      h += '<p>Не вспомнилось — назови на сессии:</p><ol class="misses">' +
+        s.missed.map(function (i) { var c = L.cards[i]; return '<li>' + esc(c.q) + '<div class="a">' + esc(c.a) + '</div></li>'; }).join('') + '</ol>' +
+        '<div class="row"><button class="btn primary" id="again-miss">Ещё раз только эти</button><button class="btn" id="again-all">Все заново</button></div>';
+    } else {
+      h += '<p>Все вспомнились. Дальше квиз: он проверяет различение, а не память.</p><div class="row"><button class="btn" id="again-all">Все заново</button></div>';
+    }
+    deck.innerHTML = h;
+    var m = document.getElementById('again-miss');
+    if (m) { var list = s.missed.slice(); m.addEventListener('click', function () { cardsStart(list); }); }
+    document.getElementById('again-all').addEventListener('click', function () { cardsStart(); });
+  }
+  if (deck) {
+    if (state.cards && state.cards.n === L.cards.length) cardsShow(); else cardsStart();
+  }
+
+  // квиз: варианты перемешиваются при каждой загрузке
+  var quiz = document.getElementById('quiz'), score = document.getElementById('score');
+  function quizRender() {
+    if (!quiz) return;
+    if (!state.quiz || state.quiz.n !== L.quiz.length) state.quiz = { n: L.quiz.length, picked: {} };
+    quiz.innerHTML = '';
+    L.quiz.forEach(function (it, n) {
+      var box = document.createElement('div'); box.className = 'qz';
+      var opts = shuffle([{ t: it.ok, c: true }].concat(it.no.map(function (t) { return { t: t, c: false }; })));
+      box.innerHTML = '<div class="qz-text">' + (n + 1) + '. ' + esc(it.q) + '</div><ul class="choices">' +
+        opts.map(function (o) { return '<li tabindex="0" data-c="' + o.c + '">' + esc(o.t) + '</li>'; }).join('') +
+        '</ul><div class="explain" hidden>' + esc(it.ex) + '</div>';
+      var ul = box.querySelector('ul');
+      function mark(li) {
+        ul.classList.add('done');
+        ul.querySelectorAll('li').forEach(function (x) {
+          if (x.dataset.c === 'true') x.classList.add('correct');
+          else if (x === li) x.classList.add('wrong');
+          else x.classList.add('dim');
+        });
+        box.querySelector('.explain').hidden = false;
+      }
+      function pick(li) {
+        if (ul.classList.contains('done')) return;
+        state.quiz.picked[n] = li.textContent; save(); mark(li); quizScore();
+      }
+      ul.querySelectorAll('li').forEach(function (li) {
+        li.addEventListener('click', function () { pick(li); });
+        li.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(li); } });
+        if (state.quiz.picked[n] === li.textContent) mark(li);
+      });
+      quiz.appendChild(box);
+    });
+    quizScore();
+  }
+  function quizScore() {
+    if (!score) return;
+    var done = 0, right = 0;
+    L.quiz.forEach(function (it, n) { var p = state.quiz.picked[n]; if (p !== undefined) { done++; if (p === it.ok) right++; } });
+    score.textContent = done ? 'Верно ' + right + ' из ' + done + (done === L.quiz.length ? ' · квиз пройден' : '') : '';
+  }
+  quizRender();
+
+  var reset = document.getElementById('reset');
+  if (reset) reset.addEventListener('click', function () {
+    state = {}; save();
+    if (deck) cardsStart();
+    quizRender();
+  });
+})();
+</script>
+
+</html>
