@@ -128,6 +128,7 @@ button:focus-visible, .choices li:focus-visible { outline: 2px solid var(--accen
 
 .consolidate { background: var(--surface); border: 1px solid var(--accent); border-radius: 8px; padding: .9rem 1.1rem; margin-top: 1rem; }
 .consolidate a.btn { display: inline-block; text-decoration: none; margin: .4rem .4rem 0 0; }
+pre.tree { background: var(--surface); border: 1px solid var(--line, #d8dde6); border-radius: 8px; padding: .8rem 1rem; overflow-x: auto; font: 13px/1.6 "IBM Plex Mono", ui-monospace, monospace; margin: .6rem 0 1rem; }
 .scheme .chain { opacity: .3; transition: opacity .15s; }
 .scheme.fwd .c-pre, .scheme.fwd .c-fwd, .scheme.fwd .c-post { opacity: 1; }
 .scheme.out .c-out, .scheme.out .c-post { opacity: 1; }
@@ -153,26 +154,34 @@ button:focus-visible, .choices li:focus-visible { outline: 2px solid var(--accen
 
 <section id="s-what">
 <h2>1. netfilter и цепочки</h2>
-<p><b>Задача.</b> Таблица маршрутов (урок 2) решает только, <b>куда</b> отдать пакет. Но по пути через ядро его ещё нужно <b>пропустить, отбросить или переписать</b> — это делает другая часть ядра. Пакет проходит несколько фиксированных точек, и в каждой ядро прогоняет список правил. Эти правила и есть фильтрация и NAT.</p>
+<p><b>Два вопроса к пакету.</b> «Куда его отправить?» — отвечает таблица маршрутов (урок 2). «Что с ним сделать: пропустить, отбросить, переписать?» — отвечает <b>netfilter</b>, и про него этот урок. Это две разные части ядра на одном пути.</p>
 
-<h3>Четыре слова до начала</h3>
+<h3>Как устроен netfilter</h3>
+<p>Внутри netfilter всё вложено одно в другое. Рядом, отдельно, стоит таблица маршрутов из урока 2 — у неё с таблицей правил общее только слово «таблица».</p>
+<pre class="tree">netfilter — ЧТО сделать с пакетом
+└─ таблица правил   — папка под задачу (фильтрация / NAT)
+   └─ цепочка       — список правил, привязана к точке (hook)
+      └─ правило    — условие → действие
+
+таблица маршрутов — КУДА отправить   (урок 2, отдельная вещь)</pre>
+
 <div class="pairs">
-  <div class="pair"><div class="label">netfilter</div><p>Подсистема ядра: на фиксированных точках пути пакета она прогоняет правила. <code>iptables</code> и <code>nftables</code> сами пакеты не трогают — это две программы, которые <b>записывают</b> правила в netfilter (nftables сменил iptables).</p></div>
-  <div class="pair"><div class="label">hook — точка</div><p>Фиксированное место на пути пакета через ядро, где netfilter вызывает привязанные к нему правила. Точек пять: <code>prerouting</code>, <code>input</code>, <code>forward</code>, <code>output</code>, <code>postrouting</code>.</p></div>
-  <div class="pair"><div class="label">цепочка</div><p>Упорядоченный список правил, привязанный к одной точке; пакет идёт по нему сверху вниз. В iptables на точках стоят встроенные цепочки с теми же именами (<code>INPUT</code>, <code>FORWARD</code>…); в nftables готовых нет — цепочку к точке заводишь сам.</p></div>
-  <div class="pair"><div class="label">таблица</div><p>Группа цепочек под одну задачу — фильтрацию или трансляцию адресов. Не путать с таблицей маршрутов: та выбирает дорогу, эта хранит правила.</p></div>
+  <div class="pair"><div class="label">netfilter</div><p>Подсистема ядра. На фиксированных точках пути пакета ядро прогоняет правила. <code>iptables</code> и <code>nftables</code> сами пакеты не трогают — они только записывают эти правила в netfilter (nftables сменил iptables).</p></div>
+  <div class="pair"><div class="label">точка (hook)</div><p>Место на пути пакета, где ядро прогоняет привязанные к нему правила. Точек пять: <code>prerouting</code>, <code>input</code>, <code>forward</code>, <code>output</code>, <code>postrouting</code>.</p></div>
+  <div class="pair"><div class="label">цепочка</div><p>Список правил, привязанный к одной точке; ядро идёт по нему сверху вниз. В iptables цепочки на точках уже есть (<code>INPUT</code>, <code>FORWARD</code>…), в nftables заводишь их сам — но прогоняет их по пакету в обоих случаях ядро.</p></div>
+  <div class="pair"><div class="label">таблица правил</div><p>Папка, в которой лежат цепочки под одну задачу — фильтрацию или NAT. Это <b>не</b> таблица маршрутов: та выбирает дорогу, эта хранит правила.</p></div>
 </div>
 
 <div class="pairs">
-  <div class="pair"><div class="label">цепочка ≠ таблица</div><p>Цепочка — список правил <b>в одной точке</b> пути. Таблица — <b>группа цепочек</b>. Склейка из разбора: «цепочка» и «таблица» — не одно и то же, и ни то ни другое не таблица маршрутов.</p></div>
-  <div class="pair"><div class="label">netfilter ≠ таблица маршрутов</div><p>Таблица маршрутов решает «куда отправить», netfilter — «что сделать»: пропустить, отбросить, переписать адрес. Разные части ядра на одном пути.</p></div>
+  <div class="pair"><div class="label">записал ≠ прогнал</div><p>iptables или nftables один раз <b>кладут</b> в netfilter цепочки и правила — и отходят в сторону. По каждому пакету эти правила <b>прогоняет ядро</b>, когда пакет проходит точку. Самой программы в пути пакета нет.</p></div>
+  <div class="pair"><div class="label">две «таблицы»</div><p>Таблица <b>правил</b> живёт внутри netfilter и держит цепочки. Таблица <b>маршрутов</b> (урок 2) — отдельный список, выбирающий следующий шаг. Одинаковое слово — единственное, что их роднит.</p></div>
 </div>
 
 <div class="open-q">
   <div class="label">Открытый вопрос — вслух</div>
-  <div class="q">Своими словами: чем различаются точка (hook), цепочка и таблица? Объясни на правиле, которое запрещает песочнице выходить в интернет.</div>
+  <div class="q">Правило запрещает песочнице выходить в интернет. Разложи его по уровням: в какой точке, в какой цепочке, в какой таблице оно живёт — и кто прогоняет его по пакету?</div>
   <div class="row"><button class="btn small">Ответил вслух — показать эталон</button></div>
-  <div class="answer" hidden>Точка — место на пути пакета (например, <code>forward</code>: пакет проходит её, когда хост его пересылает). Цепочка — список правил, привязанный к этой точке, по нему пакет идёт сверху вниз. Таблица — группа таких цепочек под одну задачу (фильтрация). Правило «запретить песочнице в интернет» — это строка в цепочке на точке <code>forward</code>, в таблице фильтрации.</div>
+  <div class="answer" hidden>Точка — <code>forward</code> (пакет песочницы хост пересылает). Цепочка — список правил на этой точке, по нему пакет идёт сверху вниз. Таблица — правил, под задачу фильтрации (не таблица маршрутов). Прогоняет правило по пакету ядро, когда пакет проходит точку <code>forward</code>; iptables/nftables лишь записали его заранее.</div>
 </div>
 </section>
 
