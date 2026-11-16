@@ -1,0 +1,421 @@
+<!doctype html>
+<html lang="ru">
+<title>Из чего образ и где лежит</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="robots" content="noindex, nofollow">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>/* Layout: одна колонка урока ~44rem; схемы и таблицы скроллятся внутри своих контейнеров */
+:root {
+  --bg: #f6f7f9; --surface: #ffffff; --sunk: #edf0f5;
+  --fg: #1b2230; --muted: #5b6474; --line: #d8dde6;
+  --accent: #1f3864; --accent-soft: #e3e9f4;
+  --dnat: #a8571a; --dnat-soft: #f8ebdf;
+  --ok: #2d6a4f; --ok-soft: #e5f2ea; --no: #9b2226; --no-soft: #f8e7e7;
+  --f-body: "IBM Plex Sans", "Segoe UI", Roboto, Arial, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #12161d; --surface: #19202a; --sunk: #202834;
+  --fg: #e3e7ee; --muted: #98a1b0; --line: #2c3542;
+  --accent: #91afe3; --accent-soft: #223149;
+  --dnat: #f0a35e; --dnat-soft: #3a2a1c;
+  --ok: #74c69d; --ok-soft: #1b3127; --no: #f28b82; --no-soft: #3a2020; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #12161d; --surface: #19202a; --sunk: #202834;
+  --fg: #e3e7ee; --muted: #98a1b0; --line: #2c3542;
+  --accent: #91afe3; --accent-soft: #223149;
+  --dnat: #f0a35e; --dnat-soft: #3a2a1c;
+  --ok: #74c69d; --ok-soft: #1b3127; --no: #f28b82; --no-soft: #3a2020; color-scheme: dark }
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font: 16px/1.6 var(--f-body); margin: 0; }
+.wrap { max-width: 44rem; margin: 0 auto; padding-block: 1.5rem 4rem;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+h1 { font-size: 1.75rem; line-height: 1.25; margin: .25rem 0 0; color: var(--accent); text-wrap: balance; font-weight: 600; }
+h2 { font-size: 1.15rem; margin: 2.75rem 0 .75rem; color: var(--accent); font-weight: 600; text-wrap: balance; }
+h3 { font-size: 1rem; margin: 1.75rem 0 .25rem; font-weight: 600; }
+p { margin: .6rem 0; max-width: 65ch; }
+a { color: var(--accent); }
+.meta { color: var(--muted); font-size: .875rem; margin-top: .35rem; }
+.label { font: 500 .72rem/1.3 var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.backlink { font-size: .85rem; text-decoration: none; }
+code { font-family: var(--f-mono); font-size: .9em; background: var(--sunk); padding: .05rem .3rem; border-radius: 3px; }
+.plan { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: 1.25rem; }
+.plan a { font-size: .85rem; text-decoration: none; border: 1px solid var(--line); padding: .2rem .65rem; border-radius: 999px; background: var(--surface); }
+.plan a:hover, .plan a:focus-visible { border-color: var(--accent); }
+
+.scope { margin-top: 1.25rem; padding: .75rem 1rem; border: 1px dashed var(--line); border-radius: 8px; font-size: .92rem; }
+.scope p { margin: .15rem 0; }
+
+.tbl { overflow-x: auto; margin: 1rem 0; }
+table { border-collapse: collapse; width: 100%; min-width: 32rem; font-size: .92rem; }
+th, td { text-align: left; padding: .5rem .6rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-weight: 600; color: var(--muted); font-size: .8rem; }
+.pairs { display: grid; grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr)); gap: .75rem; margin: 1.25rem 0; }
+.pair { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: .8rem 1rem; min-width: 0; }
+.pair p { margin: .35rem 0 0; font-size: .95rem; }
+.key { border-left: 3px solid var(--accent); padding: .3rem 0 .3rem .9rem; margin: 1.25rem 0; }
+.key p { margin: .2rem 0; }
+.aside { color: var(--muted); font-size: .92rem; }
+
+ol.chain, ol.walk { list-style: none; padding: 0; margin: .9rem 0 0; display: grid; gap: .35rem; counter-reset: s; }
+ol.chain li, ol.walk li { counter-increment: s; display: grid; grid-template-columns: 2rem 1fr; gap: .5rem; align-items: baseline; padding: .45rem .6rem; border-radius: 6px; }
+ol.chain li::before, ol.walk li::before { content: counter(s); font: 500 .8rem var(--f-mono); color: var(--muted); text-align: right; }
+ol li > span { min-width: 0; }
+ol.walk li.hl { background: var(--dnat-soft); }
+ol.walk li.hl b { color: var(--dnat); }
+.who { display: block; font: .8rem var(--f-mono); color: var(--muted); }
+
+.scheme { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: .75rem; margin-top: 1rem; }
+.scheme svg { display: block; min-width: 640px; width: 100%; height: auto; }
+.scheme text { font-family: var(--f-mono); font-size: 12px; fill: var(--fg); }
+.scheme .lbl { fill: var(--muted); font-size: 11px; }
+.scheme .node { fill: var(--sunk); stroke: var(--line); }
+.scheme .pod { fill: var(--accent-soft); stroke: var(--accent); }
+.scheme .box { fill: var(--surface); stroke: var(--accent); }
+.scheme .wire { stroke: var(--muted); stroke-width: 1.5; fill: none; }
+.scheme .route { fill: var(--surface); stroke: var(--line); stroke-dasharray: 3 3; }
+.scheme .path { stroke: var(--accent); stroke-width: 3; fill: none; stroke-linecap: round; opacity: .85; }
+.scheme .svc-only { display: none; }
+.scheme.svc .svc-only { display: inline; }
+.scheme .dnatbox { fill: var(--dnat-soft); stroke: var(--dnat); }
+.scheme .dnattxt { fill: var(--dnat); font-weight: 500; }
+
+.tabs { display: flex; gap: .4rem; margin-top: 1rem; flex-wrap: wrap; }
+.tabs button { font: 500 .9rem var(--f-body); padding: .4rem .9rem; border-radius: 6px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); cursor: pointer; }
+.tabs button[aria-selected="true"] { background: var(--accent); border-color: var(--accent); color: var(--bg); }
+button:focus-visible, .choices li:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.open-q { background: var(--surface); border: 1px solid var(--accent); border-radius: 8px; padding: .9rem 1.1rem; margin: 1.5rem 0; }
+.open-q .q { font-weight: 600; margin-top: .25rem; }
+.open-q .answer { margin-top: .8rem; padding: .8rem 1rem; background: var(--sunk); border-radius: 6px; }
+
+.deck { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 1.25rem; margin-top: 1rem; }
+.deck-top { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; font-size: .85rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.card-q { font-size: 1.15rem; font-weight: 600; margin: 1rem 0 .4rem; text-wrap: balance; }
+.card-hint { font-size: .85rem; color: var(--muted); }
+.card-a { margin-top: 1rem; padding: .9rem 1rem; background: var(--sunk); border-radius: 6px; }
+.row { display: flex; gap: .5rem; flex-wrap: wrap; margin-top: 1rem; }
+.btn { font: 500 .9rem var(--f-body); padding: .5rem 1rem; border-radius: 6px; border: 1px solid var(--accent); background: transparent; color: var(--accent); cursor: pointer; }
+.btn.primary { background: var(--accent); color: var(--bg); }
+.btn.ok { border-color: var(--ok); color: var(--ok); }
+.btn.no { border-color: var(--no); color: var(--no); }
+.btn.small { font-size: .8rem; padding: .3rem .7rem; }
+.misses { margin-top: 1rem; padding-left: 1.2rem; }
+.misses li { margin: .4rem 0; }
+.misses .a { color: var(--muted); font-size: .92rem; }
+
+.qz { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 1rem 1.15rem; margin: 1rem 0; }
+.qz-text { font-weight: 600; }
+.choices { list-style: none; padding: 0; margin: .8rem 0 0; display: grid; gap: .45rem; }
+.choices li { border: 1px solid var(--line); border-radius: 6px; padding: .55rem .8rem; cursor: pointer; background: var(--bg); }
+.choices li:hover { border-color: var(--accent); }
+.choices.done li { cursor: default; }
+.choices li.correct { border-color: var(--ok); background: var(--ok-soft); }
+.choices li.wrong { border-color: var(--no); background: var(--no-soft); }
+.choices li.dim { opacity: .55; }
+.explain { margin-top: .7rem; font-size: .92rem; color: var(--muted); }
+.score { font-variant-numeric: tabular-nums; color: var(--muted); font-size: .9rem; }
+.foot { margin-top: 3rem; display: flex; gap: 1rem; flex-wrap: wrap; align-items: center; justify-content: space-between; font-size: .85rem; color: var(--muted); }
+.session li { margin: .5rem 0; }
+.sources { font-size: .9rem; }
+@media (prefers-reduced-motion: no-preference) { .btn, .choices li, .tabs button { transition: background .15s, border-color .15s; } }
+
+[hidden] { display: none !important; }
+
+.consolidate { background: var(--surface); border: 1px solid var(--accent); border-radius: 8px; padding: .9rem 1.1rem; margin-top: 1rem; }
+.consolidate a.btn { display: inline-block; text-decoration: none; margin: .4rem .4rem 0 0; }
+pre.tree { background: var(--surface); border: 1px solid var(--line, #d8dde6); border-radius: 8px; padding: .8rem 1rem; overflow-x: auto; font: 13px/1.6 "IBM Plex Mono", ui-monospace, monospace; margin: .6rem 0 1rem; }
+</style>
+
+
+<div class="wrap">
+<header>
+  <a class="backlink" href="index.html">← Все уроки</a>
+  <div class="label" style="margin-top:1rem">Хранение образов · урок 1 из 5</div>
+  <h1>Из чего образ и где лежит</h1>
+  <div class="meta">Из чего собран образ, чем склад-реестр отличается от локального store и почему два разных образа почти не делят место · ~10 минут</div>
+  <div class="scope">
+    <p><b>Сценарий серии.</b> Один узел. Двухсервисная задача CyberGym (<code>main</code> + <code>task-server</code>) запускается много раз. Образ задачи — условно <code>3,8 ГиБ</code>. Вопрос всей серии: сколько места это стоит на узле и почему. В этом уроке — из чего образ собран и где он физически оказывается, до того как мы в уроке 2 посмотрим, что с ним делает драйвер.</p>
+    <p><b>Границы примера.</b> Docker / containerd, образ в формате OCI. Как слои превращаются в файловую систему контейнера (vfs, overlay) — урок 2. Делится ли база между разными store и узлами — урок 3. Здесь только: что такое слой, манифест, реестр и store.</p>
+  </div>
+  <nav class="plan" aria-label="Разделы">
+    <a href="#s-image">1. Образ = слои + манифест</a><a href="#s-store">2. Реестр и store</a><a href="#s-share">3. Почему слои не делятся</a><a href="#s-cards">4. Карточки</a><a href="#s-quiz">5. Квиз</a><a href="#s-session">6. Самопроверка</a><a href="#s-fix">7. Закрепить</a>
+  </nav>
+</header>
+
+<section id="s-image">
+<h2>1. Образ — это не один файл</h2>
+<p>Образ собран <b>слоями</b>, как стопка. Каждый слой — отдельный запакованный архив с файлами: один слой принёс систему, другой положил сверху библиотеки, третий — твою программу. Плюс есть маленький текстовый список — <b>манифест</b>: он перечисляет, из каких слоёв собран образ и в каком порядке их класть.</p>
+
+<pre class="tree">образ задачи CyberGym в реестре:
+  манифест            — список: слой 1, слой 2, слой 3 (и порядок)
+  ├─ слой 1 (архив)   — базовая система
+  ├─ слой 2 (архив)   — gcc, python, библиотеки
+  └─ слой 3 (архив)   — бинарник task-server, файлы задачи</pre>
+
+<div class="pairs">
+  <div class="pair"><div class="label">слой</div><p>Отдельный архив с частью файлов образа. Слои только дополняют друг друга сверху вниз; нижние не переписываются.</p></div>
+  <div class="pair"><div class="label">манифест</div><p>Короткий список, из каких слоёв и в каком порядке собран образ. Сам файлов не содержит — только ссылается на слои.</p></div>
+</div>
+
+<div class="open-q">
+  <div class="label">Открытый вопрос — вслух</div>
+  <div class="q">Своими словами: из чего собран образ в реестре и зачем ему отдельный манифест, если файлы лежат в слоях?</div>
+  <div class="row"><button class="btn small">Ответил вслух — показать эталон</button></div>
+  <div class="answer" hidden>Образ — это несколько слоёв (каждый отдельный архив с файлами) плюс манифест. Манифест сам файлов не хранит, он перечисляет, какие слои входят в образ и в каком порядке их укладывать; без него непонятно, из чего образ собирать.</div>
+</div>
+</section>
+
+<section id="s-store">
+<h2>2. Реестр — склад, store — распакованная копия рядом</h2>
+<p>Слои-архивы лежат на <b>реестре</b> — это склад где-то на сервере, откуда качают. Контейнеры на реестре не работают. Чтобы запустить контейнер, узел делает два действия:</p>
+
+<pre class="tree">реестр (склад, сжатые архивы)
+      │  pull    — скачать архивы слоёв на узел
+      ▼
+   узел: unpack  — распаковать архивы в обычные файлы и папки
+      ▼
+   store (локальная папка узла, распакованные слои)
+      ▼
+   контейнер читает файлы отсюда, а не из архива</pre>
+
+<div class="pairs">
+  <div class="pair"><div class="label">реестр</div><p>Удалённый склад сжатых слоёв. Нужен, чтобы доставить образ на узел, и чтобы не качать слой снова. Контейнер из него напрямую не читает.</p></div>
+  <div class="pair"><div class="label">store</div><p>Локальная папка на узле, куда слои распакованы в обычные файлы. Отсюда контейнер реально читает. Это и есть «локальное хранилище».</p></div>
+  <div class="pair"><div class="label">pull</div><p>Скачать сжатые архивы слоёв с реестра на узел.</p></div>
+  <div class="pair"><div class="label">unpack</div><p>Разложить скачанные архивы в файлы и папки внутри store.</p></div>
+</div>
+
+<p><b>Скачивание и распаковка — один раз на store.</b> Как только образ впервые попал в store этого узла, следующий контейнер той же задачи берёт уже распакованные каталоги и заново ничего не качает. Это важный момент для всей серии: экономия начинается там, где store общий. (Что мешает ему быть общим — урок 3.)</p>
+
+<div class="open-q">
+  <div class="label">Открытый вопрос — вслух</div>
+  <div class="q">Задачу запускают второй раз на том же узле. Что происходит с pull и unpack и почему?</div>
+  <div class="row"><button class="btn small">Ответил вслух — показать эталон</button></div>
+  <div class="answer" hidden>Ни pull, ни unpack не повторяются: образ уже распакован в store этого узла, и второй контейнер берёт готовые каталоги. Качать и распаковывать заново нужно только если образа в store ещё нет — например, на другом узле с холодным store.</div>
+</div>
+</section>
+
+<section id="s-share">
+<h2>3. Почему два разных образа почти не делят место</h2>
+<p>У каждого слоя есть <b>имя, посчитанное из его содержимого</b> (хеш архива). Отсюда правило: один и тот же слой хранится на узле один раз, и его делят все образы, где он <b>побайтово тот же</b>. Но стоит образам собираться хоть чуть по-разному — у слоёв разные имена, и общего между ними нет.</p>
+
+<pre class="tree">образ A: [слой X][слой Y1]
+образ B: [слой X][слой Y2]
+          └ одинаковый X — хранится 1 раз, делится
+                   Y1 и Y2 собраны по-разному → разные имена → по отдельности</pre>
+
+<div class="key">
+  <p><b>Поэтому у 98 образов задач CyberGym общего места почти ноль.</b> Задачи собирались каждая по-своему, одинаковых слоёв между ними нет — дедупликация по слоям равна нулю, и склад занимает сумму всех образов. Делёж слоёв — не волшебство реестра, а следствие того, что слой побитово совпал.</p>
+</div>
+
+<div class="open-q">
+  <div class="label">Открытый вопрос — вслух</div>
+  <div class="q">На узле 98 образов разных задач, а общего места почти нет, хотя задачи похожие. Почему слои не делятся?</div>
+  <div class="row"><button class="btn small">Ответил вслух — показать эталон</button></div>
+  <div class="answer" hidden>Имя слоя считается из его содержимого, поэтому делится только слой, который побайтово одинаков в двух образах. «Похожие» задачи собраны каждая по-своему — их слои получают разные имена и хранятся по отдельности. Отсюда дедупликация ноль и склад размером в сумму образов.</div>
+</div>
+</section>
+
+<section id="s-cards">
+<h2>4. Карточки</h2>
+<p>Сначала вслух, потом открыть ответ. Прогресс сохраняется в этом браузере.</p>
+<div class="deck" id="deck" aria-live="polite"></div>
+</section>
+
+<section id="s-quiz">
+<h2>5. Квиз на различение</h2>
+<p>Варианты перемешиваются при каждой загрузке.</p>
+<div id="quiz"></div>
+<div class="score" id="score"></div>
+</section>
+
+<section id="s-session" class="session">
+<h2>6. Самопроверка</h2>
+<p>Без подсказок. Отвечай в чате проекта, по одному вопросу — разберём. На сессии будет ещё и новый случай, не из этого списка.</p>
+<ul>
+  <li>Без схемы: проследи путь образа от реестра до работающего контейнера — что сжато, что распаковано, что где лежит.</li>
+  <li>Случай: диск под 98 образами задач не меньше суммы всех образов, хотя задачи «похожие». Это нормально? Почему?</li>
+  <li>Связь: чем store отличается от реестра и почему контейнер читает не из реестра напрямую?</li>
+</ul>
+</section>
+
+<section id="s-fix">
+<h2>7. Закрепить</h2>
+<div class="consolidate">
+  <p><b>Когда:</b> завтра — карточки этого урока ещё раз (<a href="#s-cards">раздел 4</a>, «Все заново»), потом через 3–4 дня.</p>
+  <p class="aside">Следующий урок серии — «Как слои становятся файловой системой»: чем vfs отличается от overlay и почему vfs раздувал диск твоего бокса до десятков гигабайт.</p>
+</div>
+</section>
+
+<section class="sources">
+<h2>Источники</h2>
+<ul>
+  <li><a href="https://docs.docker.com/engine/storage/drivers/">About storage drivers — Docker Docs</a> — образ собран из read-only слоёв плюс слой контейнера; одинаковые слои хранятся на узле один раз и делятся между образами.</li>
+  <li><a href="https://github.com/opencontainers/image-spec/blob/main/manifest.md">OCI Image Manifest Specification</a> — манифест ссылается на конфиг и упорядоченный список слоёв образа.</li>
+  <li><a href="https://github.com/opencontainers/image-spec/blob/main/descriptor.md">OCI Content Descriptors</a> — слой адресуется по digest (хешу содержимого): совпадает содержимое — совпадает имя.</li>
+</ul>
+</section>
+
+<div class="foot"><a href="index.html">← Все уроки</a><button class="btn small" id="reset">Сбросить прогресс</button></div>
+</div>
+
+<script>
+window.LESSON = { id: '2026-11-16-linux-obrazy-store', cards: [{"q": "Из чего состоит образ?", "a": "Из нескольких слоёв, каждый — отдельный сжатый архив, и манифеста, который перечисляет слои и их порядок.", "deck": "linux-06-hranenie-obrazov"}, {"q": "Чем реестр отличается от store?", "a": "Реестр — удалённый склад сжатых слоёв, откуда качают; store — локальная папка на узле, где слои распакованы и откуда контейнер читает.", "deck": "linux-06-hranenie-obrazov"}, {"q": "Что делают pull и unpack?", "a": "pull качает сжатые архивы слоёв из реестра, unpack распаковывает их в обычные файлы в локальном store.", "deck": "linux-06-hranenie-obrazov"}, {"q": "Сколько раз образ качается и распаковывается в один store?", "a": "Один раз: следующий контейнер на том же store берёт уже распакованные каталоги и заново ничего не качает.", "deck": "linux-06-hranenie-obrazov"}, {"q": "Почему у двух разных образов часто нет ни одного общего слоя?", "a": "Имя слоя считается из его содержимого, поэтому слой общий, только если он побайтово тот же; собранные хоть чуть по-разному слои получают разные имена.", "deck": "linux-06-hranenie-obrazov"}], quiz: [
+  { q: 'Что контейнер реально читает во время работы?',
+    ok: 'Распакованные файлы в локальном store узла',
+    no: ['Сжатый архив слоя прямо из реестра', 'Манифест образа', 'Файлы по сети с реестра на каждое открытие'],
+    ex: 'Контейнер читает обычные файлы, распакованные в store. Реестр — склад архивов для доставки; манифест — только список слоёв.' },
+  { q: 'Задача запускается второй раз на том же узле. Образ качается заново?',
+    ok: 'Нет: он уже распакован в store, берутся готовые каталоги',
+    no: ['Да, каждый контейнер качает образ заново', 'Да, но скачивается только манифест', 'Качается заново, если слоёв больше трёх'],
+    ex: 'pull и unpack делаются один раз на store. Пока образ в store этого узла, следующий контейнер берёт распакованное и ничего не качает.' },
+  { q: 'Почему у 98 образов разных задач дедупликация по слоям равна нулю?',
+    ok: 'Имена слоёв считаются из содержимого, а слои собраны по-разному → разные имена',
+    no: ['Реестр не умеет дедупликацию', 'Слои слишком большие для дедупликации', 'Не включён overlay'],
+    ex: 'Слой делится, только если он побайтово тот же в двух образах. Разная сборка → разный хеш → разные имена → хранятся по отдельности. Драйвер здесь ни при чём.' },
+  { q: 'Реестр — это что?',
+    ok: 'Удалённый склад сжатых слоёв, откуда их качают',
+    no: ['Локальная папка узла, где работает контейнер', 'Драйвер хранилища образа', 'Кэш файлов в памяти ядра'],
+    ex: 'Реестр — склад для доставки и чтобы не качать слой снова. Локальная распакованная папка, откуда читает контейнер, — это store.' },
+  { q: 'Образ — это один файл?',
+    ok: 'Нет: набор слоёв-архивов плюс манифест со списком слоёв',
+    no: ['Да, один tar-архив', 'Да, один сжатый файл образа', 'Да, если не включена ленивая загрузка'],
+    ex: 'Образ собран из нескольких слоёв, каждый — отдельный архив, и манифеста, который перечисляет слои и порядок. Одним файлом он не хранится.' }
+]};
+</script>
+<script>// Общий код уроков. Данные урока — в window.LESSON = { id, cards, quiz }.
+// Прогресс хранится в localStorage этого браузера; без него урок работает с нуля.
+(function () {
+  var L = window.LESSON;
+  if (!L || !L.id) throw new Error('window.LESSON.id не задан');
+  var KEY = 'drill:' + L.id;
+  var state = load();
+  function load() { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { return {}; } }
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} }
+  function shuffle(a) { for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]; }); }
+
+  // вкладки: кнопка .tabs button[data-panel]; data-scheme — класс для #scheme
+  document.querySelectorAll('.tabs').forEach(function (tabs) {
+    var btns = tabs.querySelectorAll('button[data-panel]');
+    btns.forEach(function (b) {
+      b.addEventListener('click', function () {
+        btns.forEach(function (x) {
+          x.setAttribute('aria-selected', String(x === b));
+          document.getElementById(x.dataset.panel).hidden = x !== b;
+        });
+        var sch = document.getElementById('scheme');
+        if (sch) sch.className = 'scheme' + (b.dataset.scheme ? ' ' + b.dataset.scheme : '');
+      });
+    });
+  });
+
+  // открытые вопросы: эталон под кнопкой, после своей попытки
+  document.querySelectorAll('.open-q').forEach(function (box) {
+    var btn = box.querySelector('button'), ans = box.querySelector('.answer');
+    btn.addEventListener('click', function () {
+      ans.hidden = !ans.hidden;
+      btn.textContent = ans.hidden ? 'Ответил вслух — показать эталон' : 'Скрыть эталон';
+    });
+  });
+
+  // карточки
+  var deck = document.getElementById('deck');
+  function cardsStart(only) {
+    var idx = only || L.cards.map(function (_, i) { return i; });
+    state.cards = { n: L.cards.length, order: shuffle(idx.slice()), pos: 0, missed: [], knew: 0 };
+    save(); cardsShow();
+  }
+  function cardsShow() {
+    var s = state.cards;
+    if (s.pos >= s.order.length) return cardsFinish();
+    var c = L.cards[s.order[s.pos]];
+    deck.innerHTML =
+      '<div class="deck-top"><span>' + (s.pos + 1) + ' из ' + s.order.length + '</span><span>знал ' + s.knew + ' · не знал ' + s.missed.length + '</span></div>' +
+      '<div class="card-q">' + esc(c.q) + '</div><div class="card-hint">' + esc(c.deck) + '</div>' +
+      '<div class="row" id="card-row"><button class="btn primary" id="reveal">Ответил вслух — показать</button></div>';
+    document.getElementById('reveal').addEventListener('click', function () {
+      document.getElementById('card-row').outerHTML = '<div class="card-a">' + esc(c.a) + '</div>' +
+        '<div class="row"><button class="btn ok" id="yes">Знал</button><button class="btn no" id="no">Не знал</button></div>';
+      document.getElementById('yes').addEventListener('click', function () { s.knew++; s.pos++; save(); cardsShow(); });
+      document.getElementById('no').addEventListener('click', function () { s.missed.push(s.order[s.pos]); s.pos++; save(); cardsShow(); });
+      document.getElementById('yes').focus();
+    });
+  }
+  function cardsFinish() {
+    var s = state.cards;
+    var h = '<div class="deck-top"><span>Готово: ' + s.order.length + ' карточек</span><span>знал ' + s.knew + ' · не знал ' + s.missed.length + '</span></div>';
+    if (s.missed.length) {
+      h += '<p>Не вспомнилось — назови на сессии:</p><ol class="misses">' +
+        s.missed.map(function (i) { var c = L.cards[i]; return '<li>' + esc(c.q) + '<div class="a">' + esc(c.a) + '</div></li>'; }).join('') + '</ol>' +
+        '<div class="row"><button class="btn primary" id="again-miss">Ещё раз только эти</button><button class="btn" id="again-all">Все заново</button></div>';
+    } else {
+      h += '<p>Все вспомнились. Дальше квиз: он проверяет различение, а не память.</p><div class="row"><button class="btn" id="again-all">Все заново</button></div>';
+    }
+    deck.innerHTML = h;
+    var m = document.getElementById('again-miss');
+    if (m) { var list = s.missed.slice(); m.addEventListener('click', function () { cardsStart(list); }); }
+    document.getElementById('again-all').addEventListener('click', function () { cardsStart(); });
+  }
+  if (deck) {
+    if (state.cards && state.cards.n === L.cards.length) cardsShow(); else cardsStart();
+  }
+
+  // квиз: варианты перемешиваются при каждой загрузке
+  var quiz = document.getElementById('quiz'), score = document.getElementById('score');
+  function quizRender() {
+    if (!quiz) return;
+    if (!state.quiz || state.quiz.n !== L.quiz.length) state.quiz = { n: L.quiz.length, picked: {} };
+    quiz.innerHTML = '';
+    L.quiz.forEach(function (it, n) {
+      var box = document.createElement('div'); box.className = 'qz';
+      var opts = shuffle([{ t: it.ok, c: true }].concat(it.no.map(function (t) { return { t: t, c: false }; })));
+      box.innerHTML = '<div class="qz-text">' + (n + 1) + '. ' + esc(it.q) + '</div><ul class="choices">' +
+        opts.map(function (o) { return '<li tabindex="0" data-c="' + o.c + '">' + esc(o.t) + '</li>'; }).join('') +
+        '</ul><div class="explain" hidden>' + esc(it.ex) + '</div>';
+      var ul = box.querySelector('ul');
+      function mark(li) {
+        ul.classList.add('done');
+        ul.querySelectorAll('li').forEach(function (x) {
+          if (x.dataset.c === 'true') x.classList.add('correct');
+          else if (x === li) x.classList.add('wrong');
+          else x.classList.add('dim');
+        });
+        box.querySelector('.explain').hidden = false;
+      }
+      function pick(li) {
+        if (ul.classList.contains('done')) return;
+        state.quiz.picked[n] = li.textContent; save(); mark(li); quizScore();
+      }
+      ul.querySelectorAll('li').forEach(function (li) {
+        li.addEventListener('click', function () { pick(li); });
+        li.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(li); } });
+        if (state.quiz.picked[n] === li.textContent) mark(li);
+      });
+      quiz.appendChild(box);
+    });
+    quizScore();
+  }
+  function quizScore() {
+    if (!score) return;
+    var done = 0, right = 0;
+    L.quiz.forEach(function (it, n) { var p = state.quiz.picked[n]; if (p !== undefined) { done++; if (p === it.ok) right++; } });
+    score.textContent = done ? 'Верно ' + right + ' из ' + done + (done === L.quiz.length ? ' · квиз пройден' : '') : '';
+  }
+  quizRender();
+
+  var reset = document.getElementById('reset');
+  if (reset) reset.addEventListener('click', function () {
+    state = {}; save();
+    if (deck) cardsStart();
+    quizRender();
+  });
+})();
+</script>
+
+</html>
