@@ -1,0 +1,434 @@
+<!doctype html>
+<html lang="ru">
+<title>Как слои становятся файловой системой</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="robots" content="noindex, nofollow">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>/* Layout: одна колонка урока ~44rem; схемы и таблицы скроллятся внутри своих контейнеров */
+:root {
+  --bg: #f6f7f9; --surface: #ffffff; --sunk: #edf0f5;
+  --fg: #1b2230; --muted: #5b6474; --line: #d8dde6;
+  --accent: #1f3864; --accent-soft: #e3e9f4;
+  --dnat: #a8571a; --dnat-soft: #f8ebdf;
+  --ok: #2d6a4f; --ok-soft: #e5f2ea; --no: #9b2226; --no-soft: #f8e7e7;
+  --f-body: "IBM Plex Sans", "Segoe UI", Roboto, Arial, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #12161d; --surface: #19202a; --sunk: #202834;
+  --fg: #e3e7ee; --muted: #98a1b0; --line: #2c3542;
+  --accent: #91afe3; --accent-soft: #223149;
+  --dnat: #f0a35e; --dnat-soft: #3a2a1c;
+  --ok: #74c69d; --ok-soft: #1b3127; --no: #f28b82; --no-soft: #3a2020; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #12161d; --surface: #19202a; --sunk: #202834;
+  --fg: #e3e7ee; --muted: #98a1b0; --line: #2c3542;
+  --accent: #91afe3; --accent-soft: #223149;
+  --dnat: #f0a35e; --dnat-soft: #3a2a1c;
+  --ok: #74c69d; --ok-soft: #1b3127; --no: #f28b82; --no-soft: #3a2020; color-scheme: dark }
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font: 16px/1.6 var(--f-body); margin: 0; }
+.wrap { max-width: 44rem; margin: 0 auto; padding-block: 1.5rem 4rem;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+h1 { font-size: 1.75rem; line-height: 1.25; margin: .25rem 0 0; color: var(--accent); text-wrap: balance; font-weight: 600; }
+h2 { font-size: 1.15rem; margin: 2.75rem 0 .75rem; color: var(--accent); font-weight: 600; text-wrap: balance; }
+h3 { font-size: 1rem; margin: 1.75rem 0 .25rem; font-weight: 600; }
+p { margin: .6rem 0; max-width: 65ch; }
+a { color: var(--accent); }
+.meta { color: var(--muted); font-size: .875rem; margin-top: .35rem; }
+.label { font: 500 .72rem/1.3 var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.backlink { font-size: .85rem; text-decoration: none; }
+code { font-family: var(--f-mono); font-size: .9em; background: var(--sunk); padding: .05rem .3rem; border-radius: 3px; }
+.plan { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: 1.25rem; }
+.plan a { font-size: .85rem; text-decoration: none; border: 1px solid var(--line); padding: .2rem .65rem; border-radius: 999px; background: var(--surface); }
+.plan a:hover, .plan a:focus-visible { border-color: var(--accent); }
+
+.scope { margin-top: 1.25rem; padding: .75rem 1rem; border: 1px dashed var(--line); border-radius: 8px; font-size: .92rem; }
+.scope p { margin: .15rem 0; }
+
+.tbl { overflow-x: auto; margin: 1rem 0; }
+table { border-collapse: collapse; width: 100%; min-width: 32rem; font-size: .92rem; }
+th, td { text-align: left; padding: .5rem .6rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-weight: 600; color: var(--muted); font-size: .8rem; }
+.pairs { display: grid; grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr)); gap: .75rem; margin: 1.25rem 0; }
+.pair { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: .8rem 1rem; min-width: 0; }
+.pair p { margin: .35rem 0 0; font-size: .95rem; }
+.key { border-left: 3px solid var(--accent); padding: .3rem 0 .3rem .9rem; margin: 1.25rem 0; }
+.key p { margin: .2rem 0; }
+.aside { color: var(--muted); font-size: .92rem; }
+
+ol.chain, ol.walk { list-style: none; padding: 0; margin: .9rem 0 0; display: grid; gap: .35rem; counter-reset: s; }
+ol.chain li, ol.walk li { counter-increment: s; display: grid; grid-template-columns: 2rem 1fr; gap: .5rem; align-items: baseline; padding: .45rem .6rem; border-radius: 6px; }
+ol.chain li::before, ol.walk li::before { content: counter(s); font: 500 .8rem var(--f-mono); color: var(--muted); text-align: right; }
+ol li > span { min-width: 0; }
+ol.walk li.hl { background: var(--dnat-soft); }
+ol.walk li.hl b { color: var(--dnat); }
+.who { display: block; font: .8rem var(--f-mono); color: var(--muted); }
+
+.scheme { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: .75rem; margin-top: 1rem; }
+.scheme svg { display: block; min-width: 640px; width: 100%; height: auto; }
+.scheme text { font-family: var(--f-mono); font-size: 12px; fill: var(--fg); }
+.scheme .lbl { fill: var(--muted); font-size: 11px; }
+.scheme .node { fill: var(--sunk); stroke: var(--line); }
+.scheme .pod { fill: var(--accent-soft); stroke: var(--accent); }
+.scheme .box { fill: var(--surface); stroke: var(--accent); }
+.scheme .wire { stroke: var(--muted); stroke-width: 1.5; fill: none; }
+.scheme .route { fill: var(--surface); stroke: var(--line); stroke-dasharray: 3 3; }
+.scheme .path { stroke: var(--accent); stroke-width: 3; fill: none; stroke-linecap: round; opacity: .85; }
+.scheme .svc-only { display: none; }
+.scheme.svc .svc-only { display: inline; }
+.scheme .dnatbox { fill: var(--dnat-soft); stroke: var(--dnat); }
+.scheme .dnattxt { fill: var(--dnat); font-weight: 500; }
+
+.tabs { display: flex; gap: .4rem; margin-top: 1rem; flex-wrap: wrap; }
+.tabs button { font: 500 .9rem var(--f-body); padding: .4rem .9rem; border-radius: 6px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); cursor: pointer; }
+.tabs button[aria-selected="true"] { background: var(--accent); border-color: var(--accent); color: var(--bg); }
+button:focus-visible, .choices li:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.open-q { background: var(--surface); border: 1px solid var(--accent); border-radius: 8px; padding: .9rem 1.1rem; margin: 1.5rem 0; }
+.open-q .q { font-weight: 600; margin-top: .25rem; }
+.open-q .answer { margin-top: .8rem; padding: .8rem 1rem; background: var(--sunk); border-radius: 6px; }
+
+.deck { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 1.25rem; margin-top: 1rem; }
+.deck-top { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; font-size: .85rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.card-q { font-size: 1.15rem; font-weight: 600; margin: 1rem 0 .4rem; text-wrap: balance; }
+.card-hint { font-size: .85rem; color: var(--muted); }
+.card-a { margin-top: 1rem; padding: .9rem 1rem; background: var(--sunk); border-radius: 6px; }
+.row { display: flex; gap: .5rem; flex-wrap: wrap; margin-top: 1rem; }
+.btn { font: 500 .9rem var(--f-body); padding: .5rem 1rem; border-radius: 6px; border: 1px solid var(--accent); background: transparent; color: var(--accent); cursor: pointer; }
+.btn.primary { background: var(--accent); color: var(--bg); }
+.btn.ok { border-color: var(--ok); color: var(--ok); }
+.btn.no { border-color: var(--no); color: var(--no); }
+.btn.small { font-size: .8rem; padding: .3rem .7rem; }
+.misses { margin-top: 1rem; padding-left: 1.2rem; }
+.misses li { margin: .4rem 0; }
+.misses .a { color: var(--muted); font-size: .92rem; }
+
+.qz { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 1rem 1.15rem; margin: 1rem 0; }
+.qz-text { font-weight: 600; }
+.choices { list-style: none; padding: 0; margin: .8rem 0 0; display: grid; gap: .45rem; }
+.choices li { border: 1px solid var(--line); border-radius: 6px; padding: .55rem .8rem; cursor: pointer; background: var(--bg); }
+.choices li:hover { border-color: var(--accent); }
+.choices.done li { cursor: default; }
+.choices li.correct { border-color: var(--ok); background: var(--ok-soft); }
+.choices li.wrong { border-color: var(--no); background: var(--no-soft); }
+.choices li.dim { opacity: .55; }
+.explain { margin-top: .7rem; font-size: .92rem; color: var(--muted); }
+.score { font-variant-numeric: tabular-nums; color: var(--muted); font-size: .9rem; }
+.foot { margin-top: 3rem; display: flex; gap: 1rem; flex-wrap: wrap; align-items: center; justify-content: space-between; font-size: .85rem; color: var(--muted); }
+.session li { margin: .5rem 0; }
+.sources { font-size: .9rem; }
+@media (prefers-reduced-motion: no-preference) { .btn, .choices li, .tabs button { transition: background .15s, border-color .15s; } }
+
+[hidden] { display: none !important; }
+
+.consolidate { background: var(--surface); border: 1px solid var(--accent); border-radius: 8px; padding: .9rem 1.1rem; margin-top: 1rem; }
+.consolidate a.btn { display: inline-block; text-decoration: none; margin: .4rem .4rem 0 0; }
+pre.tree { background: var(--surface); border: 1px solid var(--line, #d8dde6); border-radius: 8px; padding: .8rem 1rem; overflow-x: auto; font: 13px/1.6 "IBM Plex Mono", ui-monospace, monospace; margin: .6rem 0 1rem; }
+</style>
+
+
+<div class="wrap">
+<header>
+  <a class="backlink" href="index.html">← Все уроки</a>
+  <div class="label" style="margin-top:1rem">Хранение образов · урок 2 из 5</div>
+  <h1>Как слои становятся файловой системой</h1>
+  <div class="meta">Почему один и тот же образ на vfs занимает десятки гигабайт, а на overlay — почти ничего поверх общей базы · ~12 минут</div>
+  <div class="scope">
+    <p><b>Сценарий серии.</b> Тот же узел и задача CyberGym. В уроке 1 образ скачался и распаковался в store. Теперь вопрос: когда из слоёв собирается файловая система контейнера, сколько это стоит места — и почему твой бокс занимал <code>10–60 ГБ</code>, хотя образ куда меньше.</p>
+    <p><b>Границы примера.</b> Docker / containerd, драйверы <code>vfs</code> и <code>overlay</code>. Здесь — что драйвер делает со слоями на диске. Почему внутри gVisor overlay не поднимается и форсится vfs — урок 4. Делится ли база между разными store и узлами — урок 3.</p>
+    <p><b>Перед уроком:</b> <a href="2026-11-16-linux-obrazy-store.html">урок 1 «Из чего образ и где лежит»</a> (образ = слои + манифест, контейнер читает из распакованного store).</p>
+  </div>
+  <nav class="plan" aria-label="Разделы">
+    <a href="#s-driver">1. Драйвер и два способа</a><a href="#s-copyup">2. copy-up</a><a href="#s-signs">3. Признаки на диске</a><a href="#s-cards">4. Карточки</a><a href="#s-quiz">5. Квиз</a><a href="#s-session">6. Самопроверка</a><a href="#s-fix">7. Закрепить</a>
+  </nav>
+</header>
+
+<section id="s-driver">
+<h2>1. Слои есть — кто делает из них файловую систему</h2>
+<p>Слои в store лежат, но контейнеру нужен один цельный корень <code>/</code>. Собирает его <b>драйвер хранилища</b> (storage driver). И тут есть два способа — от него зависит, сколько места уйдёт.</p>
+
+<p><b>vfs — копировать всё.</b> Самый простой драйвер: умеет только обычные папки и копирование. Каждый следующий слой он делает как новую папку, куда скопирован весь предыдущий слой плюс своя добавка. Контейнер при старте копирует результат ещё раз.</p>
+
+<pre class="tree">образ из трёх слоёв на vfs:
+  слой 1:     файлы A
+  слой 2:     копия A + B
+  слой 3:     копия A + копия B + C
+  контейнер:  ещё одна копия A, B, C
+
+файл A физически на диске 4 раза, хотя контейнеру нужен один</pre>
+
+<p>Отсюда и твои числа: образ бокса маленький, а на диске он размножен по слоям. На практике так 33 слоя объёмом <code>3,22 ГБ</code> занимали <code>116 ГБ</code>, а бокс — <code>10–60 ГБ</code>.</p>
+
+<p><b>overlay — положить сверху.</b> Нижние слои лежат <b>один раз</b> и общие (lower), а сверху тонкая папка для правок (upper). Базу целиком не копируют: контейнер смотрит в общие нижние слои, а своё пишет в свой upper.</p>
+
+<pre class="tree">тот же образ на overlay:
+  lower (общие нижние слои):  A, B, C   ← один раз, читают все контейнеры
+  upper контейнера 1:         пусто      ← своя тонкая папка
+  upper контейнера 2:         пусто</pre>
+
+<p>Поэтому второй контейнер того же образа почти ничего не добавляет — своя пустая папка правок. Это твой спайк: первый Pod <code>+3,8 ГиБ</code>, следующие два — по <code>~1,3 МиБ</code>.</p>
+
+<div class="pairs">
+  <div class="pair"><div class="label">vfs</div><p>Копирует всё дерево предыдущих слоёв в каждый новый слой и в контейнер. Ничего не делит. Сам Docker считает его непригодным для обычной работы — это запасной драйвер.</p></div>
+  <div class="pair"><div class="label">overlay</div><p>Держит нижние слои в одном экземпляре, общие для всех контейнеров; каждому контейнеру — свой тонкий верхний слой под изменения.</p></div>
+</div>
+
+<div class="open-q">
+  <div class="label">Открытый вопрос — вслух</div>
+  <div class="q">Один и тот же образ запускают двумя контейнерами. Сколько места добавит второй контейнер на vfs и сколько на overlay — и почему разница?</div>
+  <div class="row"><button class="btn small">Ответил вслух — показать эталон</button></div>
+  <div class="answer" hidden>На vfs второй контейнер — ещё одна полная копия всего дерева образа, то есть примерно столько же, сколько первый. На overlay нижние слои общие и уже лежат, второй контейнер добавляет только свой пустой верхний слой — почти ничего. Разница в том, что vfs копирует базу каждому, а overlay её делит.</div>
+</div>
+</section>
+
+<section id="s-copyup">
+<h2>2. А что при правке файла: copy-up</h2>
+<p>На overlay нижние слои только для чтения. Что будет, если контейнер меняет файл, который лежит в нижнем слое? Его нельзя править на месте — и драйвер делает <b>copy-up</b>: копирует этот файл целиком в верхний слой и дальше правит уже копию. Нижний слой остаётся нетронутым.</p>
+
+<pre class="tree">было:   lower: bigfile (1 ГБ, только чтение)
+правим один байт в bigfile
+стало:  lower: bigfile (1 ГБ, цел)
+        upper: копия bigfile (1 ГБ) ← сюда легла правка</pre>
+
+<div class="key">
+  <p><b>Копируется весь файл, не изменённые байты.</b> Правка одного байта в файле на 1 ГБ кладёт в верхний слой весь гигабайт. Поэтому место под изменения считается по размеру тронутых файлов, а не по объёму самих правок — важно, когда задача пишет или пересобирает крупные файлы.</p>
+</div>
+
+<div class="pairs">
+  <div class="pair"><div class="label">новый файл</div><p>Создаётся сразу в верхнем слое — копировать нечего.</p></div>
+  <div class="pair"><div class="label">правка старого</div><p>Сначала copy-up всего файла из нижнего слоя в верхний, потом правка копии.</p></div>
+</div>
+
+<div class="open-q">
+  <div class="label">Открытый вопрос — вслух</div>
+  <div class="q">Контейнер на overlay дописал одну строку в конфиг размером 500 МБ из нижнего слоя. Сколько примерно добавится в верхний слой и почему?</div>
+  <div class="row"><button class="btn small">Ответил вслух — показать эталон</button></div>
+  <div class="answer" hidden>Около 500 МБ: при первой записи в файл из нижнего слоя overlay копирует его целиком в верхний слой (copy-up) и правит уже копию. Отводится место по размеру файла, а не по размеру дописанной строки.</div>
+</div>
+</section>
+
+<section id="s-signs">
+<h2>3. Как по диску понять, какой драйвер</h2>
+<p>Ошибок как таковых нет — есть поведение диска. Режим владения здесь: не настроить драйвер, а <b>заметить по симптому</b>, что собрано неверно.</p>
+
+<div class="tbl"><table>
+<thead><tr><th>Что видно на диске</th><th>О чём это говорит</th></tr></thead>
+<tbody>
+<tr><td>Место под образом кратно больше суммы его слоёв</td><td>Слои копируются, а не делятся — это <code>vfs</code> (нижние слои не общие)</td></tr>
+<tr><td>Каждый новый контейнер того же образа добавляет ещё столько же</td><td>Базу копируют на каждого — <code>vfs</code>, либо у контейнеров раздельные store (это урок 3)</td></tr>
+<tr><td>Первый контейнер образа дорогой, второй и третий — почти бесплатны</td><td>Нижние слои общие — это <code>overlay</code> работает штатно</td></tr>
+<tr><td>Правка небольшого объёма, а диск вырос на гигабайты</td><td>copy-up крупных файлов: тронули большой файл из нижнего слоя</td></tr>
+</tbody></table></div>
+
+<p><b>Проверка:</b> посмотреть размер store против суммы слоёв образа и как он растёт с каждым новым контейнером. Растёт линейно числу контейнеров — общей базы нет.</p>
+
+<div class="open-q">
+  <div class="label">Открытый вопрос — вслух</div>
+  <div class="q">Образ задачи — 3,8 ГБ. Запустили пять боксов, store занял под 190 ГБ. Что это за драйвер и по какому признаку ты это понял?</div>
+  <div class="row"><button class="btn small">Ответил вслух — показать эталон</button></div>
+  <div class="answer" hidden>Это vfs (или раздельные store у боксов): 190 ГБ ≈ пять полных копий образа — база копируется на каждый бокс, а не делится. Признак — место растёт кратно числу боксов, а не остаётся около одного размера образа плюс мелкие правки, как было бы на общем overlay.</div>
+</div>
+</section>
+
+<section id="s-cards">
+<h2>4. Карточки</h2>
+<p>Сначала вслух, потом открыть ответ. Прогресс сохраняется в этом браузере.</p>
+<div class="deck" id="deck" aria-live="polite"></div>
+</section>
+
+<section id="s-quiz">
+<h2>5. Квиз на различение</h2>
+<p>Варианты перемешиваются при каждой загрузке.</p>
+<div id="quiz"></div>
+<div class="score" id="score"></div>
+</section>
+
+<section id="s-session" class="session">
+<h2>6. Самопроверка</h2>
+<p>Без подсказок. Отвечай в чате проекта, по одному вопросу — разберём. На сессии будет ещё и новый случай, не из этого списка.</p>
+<ul>
+  <li>Без схемы: образ из трёх слоёв, два контейнера. Разложи, что лежит на диске на vfs и что на overlay.</li>
+  <li>Случай: контейнер поменял пару байт в большом файле из нижнего слоя, а диск вырос на гигабайт. Где это объясняется и как называется?</li>
+  <li>Связь: почему на overlay второй контейнер того же образа почти бесплатен, а на vfs — нет?</li>
+</ul>
+</section>
+
+<section id="s-fix">
+<h2>7. Закрепить</h2>
+<div class="consolidate">
+  <p><b>Когда:</b> завтра — карточки этого урока ещё раз (<a href="#s-cards">раздел 4</a>, «Все заново»), потом через 3–4 дня. И короткий повтор урока 1 на старте.</p>
+  <p class="aside">Следующий урок серии — «Где живёт переиспользование»: почему общая база есть только внутри одного store на узле и почему свой Docker в песочнице даёт отдельный store на каждый trial.</p>
+</div>
+</section>
+
+<section class="sources">
+<h2>Источники</h2>
+<ul>
+  <li><a href="https://docs.docker.com/engine/storage/drivers/vfs-driver/">VFS storage driver — Docker Docs</a> — vfs не использует copy-on-write: при создании слоя делается глубокая копия, расход диска большой и производительность низкая; для продакшена не рекомендуется.</li>
+  <li><a href="https://docs.docker.com/engine/storage/drivers/overlayfs-driver/">OverlayFS storage driver — Docker Docs</a> — нижние слои общие и read-only; при первой записи в файл выполняется copy_up этого файла в верхний слой; операция на уровне файла, не блоков.</li>
+</ul>
+</section>
+
+<div class="foot"><a href="index.html">← Все уроки</a><button class="btn small" id="reset">Сбросить прогресс</button></div>
+</div>
+
+<script>
+window.LESSON = { id: '2026-11-16-linux-vfs-overlay', cards: [{"q": "Из каких слоёв собран корень файловой системы на overlay?", "a": "Из неизменяемого нижнего слоя (lower layer) и записываемого верхнего (upper layer) поверх него.", "deck": "linux-02-cgroups-i-limity"}, {"q": "Чем vfs отличается от overlay в хранении слоёв?", "a": "vfs копирует всё дерево предыдущих слоёв в каждый новый слой и в контейнер, а overlay держит нижние слои в одном экземпляре и пишет в верхний слой только изменённое.", "deck": "linux-06-hranenie-obrazov"}, {"q": "Куда попадают изменения файлов при работе поверх overlay?", "a": "Всегда в upper layer, lower layer остаётся нетронутым.", "deck": "linux-02-cgroups-i-limity"}, {"q": "Что происходит с существующим файлом из нижнего слоя при первой записи в него на overlay?", "a": "Он целиком копируется в верхний слой (copy-up), нижний не меняется — поэтому правка большого файла стоит его полного размера, а не изменённых байтов.", "deck": "linux-06-hranenie-obrazov"}, {"q": "По какому признаку на диске видно, что драйвер — vfs, а не overlay?", "a": "Место под образом кратно больше суммы его слоёв и растёт с каждым новым контейнером того же образа.", "deck": "linux-06-hranenie-obrazov"}], quiz: [
+  { q: 'vfs создаёт новый слой. Что он делает с предыдущими слоями?',
+    ok: 'Копирует всё их дерево целиком в новый слой',
+    no: ['Ссылается на них только для чтения', 'Хранит только разницу с ними', 'Сжимает их в один архив'],
+    ex: 'vfs умеет лишь копировать папки: каждый слой — полная копия предыдущих плюс добавка. Ссылка на общие нижние слои и хранение разницы — это overlay.' },
+  { q: 'На overlay меняешь 10 КБ в файле 1 ГБ из нижнего слоя. Сколько добавится в верхний слой?',
+    ok: 'Около 1 ГБ — файл копируется в upper целиком (copy-up)',
+    no: ['Около 10 КБ — только изменённые байты', '0 — правка идёт в нижний слой', 'Весь образ заново'],
+    ex: 'copy-up копирует в верхний слой весь файл, а не изменённые байты, и правит уже копию. Нижний слой при этом не трогается.' },
+  { q: 'Образ 3 ГБ, а store занял 100 ГБ и растёт с каждым контейнером. Что это?',
+    ok: 'vfs (или раздельные store): база копируется, а не делится',
+    no: ['overlay работает штатно', 'Образ слишком большой', 'Выключена ленивая загрузка'],
+    ex: 'Рост кратно числу контейнеров = общей базы нет: каждому копируется дерево. На штатном overlay второй и третий контейнеры почти не добавляли бы места.' },
+  { q: 'Второй контейнер того же образа на overlay. Сколько места он добавляет под базу?',
+    ok: 'Почти ничего: нижние слои общие, у него свой пустой верхний слой',
+    no: ['Полную копию образа', 'Половину образа', 'Зависит от числа слоёв в манифесте'],
+    ex: 'Нижние слои уже лежат и общие для всех контейнеров; новый контейнер добавляет только тонкий upper под свои изменения.' },
+  { q: 'Куда overlay записывает изменения файлов?',
+    ok: 'В верхний слой (upper); нижний остаётся нетронутым',
+    no: ['В нижний слой', 'В манифест образа', 'Обратно в реестр'],
+    ex: 'Все изменения идут в upper, lower read-only. Поэтому разные контейнеры делят одну базу и расходятся только своими верхними слоями.' }
+]};
+</script>
+<script>// Общий код уроков. Данные урока — в window.LESSON = { id, cards, quiz }.
+// Прогресс хранится в localStorage этого браузера; без него урок работает с нуля.
+(function () {
+  var L = window.LESSON;
+  if (!L || !L.id) throw new Error('window.LESSON.id не задан');
+  var KEY = 'drill:' + L.id;
+  var state = load();
+  function load() { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { return {}; } }
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} }
+  function shuffle(a) { for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]; }); }
+
+  // вкладки: кнопка .tabs button[data-panel]; data-scheme — класс для #scheme
+  document.querySelectorAll('.tabs').forEach(function (tabs) {
+    var btns = tabs.querySelectorAll('button[data-panel]');
+    btns.forEach(function (b) {
+      b.addEventListener('click', function () {
+        btns.forEach(function (x) {
+          x.setAttribute('aria-selected', String(x === b));
+          document.getElementById(x.dataset.panel).hidden = x !== b;
+        });
+        var sch = document.getElementById('scheme');
+        if (sch) sch.className = 'scheme' + (b.dataset.scheme ? ' ' + b.dataset.scheme : '');
+      });
+    });
+  });
+
+  // открытые вопросы: эталон под кнопкой, после своей попытки
+  document.querySelectorAll('.open-q').forEach(function (box) {
+    var btn = box.querySelector('button'), ans = box.querySelector('.answer');
+    btn.addEventListener('click', function () {
+      ans.hidden = !ans.hidden;
+      btn.textContent = ans.hidden ? 'Ответил вслух — показать эталон' : 'Скрыть эталон';
+    });
+  });
+
+  // карточки
+  var deck = document.getElementById('deck');
+  function cardsStart(only) {
+    var idx = only || L.cards.map(function (_, i) { return i; });
+    state.cards = { n: L.cards.length, order: shuffle(idx.slice()), pos: 0, missed: [], knew: 0 };
+    save(); cardsShow();
+  }
+  function cardsShow() {
+    var s = state.cards;
+    if (s.pos >= s.order.length) return cardsFinish();
+    var c = L.cards[s.order[s.pos]];
+    deck.innerHTML =
+      '<div class="deck-top"><span>' + (s.pos + 1) + ' из ' + s.order.length + '</span><span>знал ' + s.knew + ' · не знал ' + s.missed.length + '</span></div>' +
+      '<div class="card-q">' + esc(c.q) + '</div><div class="card-hint">' + esc(c.deck) + '</div>' +
+      '<div class="row" id="card-row"><button class="btn primary" id="reveal">Ответил вслух — показать</button></div>';
+    document.getElementById('reveal').addEventListener('click', function () {
+      document.getElementById('card-row').outerHTML = '<div class="card-a">' + esc(c.a) + '</div>' +
+        '<div class="row"><button class="btn ok" id="yes">Знал</button><button class="btn no" id="no">Не знал</button></div>';
+      document.getElementById('yes').addEventListener('click', function () { s.knew++; s.pos++; save(); cardsShow(); });
+      document.getElementById('no').addEventListener('click', function () { s.missed.push(s.order[s.pos]); s.pos++; save(); cardsShow(); });
+      document.getElementById('yes').focus();
+    });
+  }
+  function cardsFinish() {
+    var s = state.cards;
+    var h = '<div class="deck-top"><span>Готово: ' + s.order.length + ' карточек</span><span>знал ' + s.knew + ' · не знал ' + s.missed.length + '</span></div>';
+    if (s.missed.length) {
+      h += '<p>Не вспомнилось — назови на сессии:</p><ol class="misses">' +
+        s.missed.map(function (i) { var c = L.cards[i]; return '<li>' + esc(c.q) + '<div class="a">' + esc(c.a) + '</div></li>'; }).join('') + '</ol>' +
+        '<div class="row"><button class="btn primary" id="again-miss">Ещё раз только эти</button><button class="btn" id="again-all">Все заново</button></div>';
+    } else {
+      h += '<p>Все вспомнились. Дальше квиз: он проверяет различение, а не память.</p><div class="row"><button class="btn" id="again-all">Все заново</button></div>';
+    }
+    deck.innerHTML = h;
+    var m = document.getElementById('again-miss');
+    if (m) { var list = s.missed.slice(); m.addEventListener('click', function () { cardsStart(list); }); }
+    document.getElementById('again-all').addEventListener('click', function () { cardsStart(); });
+  }
+  if (deck) {
+    if (state.cards && state.cards.n === L.cards.length) cardsShow(); else cardsStart();
+  }
+
+  // квиз: варианты перемешиваются при каждой загрузке
+  var quiz = document.getElementById('quiz'), score = document.getElementById('score');
+  function quizRender() {
+    if (!quiz) return;
+    if (!state.quiz || state.quiz.n !== L.quiz.length) state.quiz = { n: L.quiz.length, picked: {} };
+    quiz.innerHTML = '';
+    L.quiz.forEach(function (it, n) {
+      var box = document.createElement('div'); box.className = 'qz';
+      var opts = shuffle([{ t: it.ok, c: true }].concat(it.no.map(function (t) { return { t: t, c: false }; })));
+      box.innerHTML = '<div class="qz-text">' + (n + 1) + '. ' + esc(it.q) + '</div><ul class="choices">' +
+        opts.map(function (o) { return '<li tabindex="0" data-c="' + o.c + '">' + esc(o.t) + '</li>'; }).join('') +
+        '</ul><div class="explain" hidden>' + esc(it.ex) + '</div>';
+      var ul = box.querySelector('ul');
+      function mark(li) {
+        ul.classList.add('done');
+        ul.querySelectorAll('li').forEach(function (x) {
+          if (x.dataset.c === 'true') x.classList.add('correct');
+          else if (x === li) x.classList.add('wrong');
+          else x.classList.add('dim');
+        });
+        box.querySelector('.explain').hidden = false;
+      }
+      function pick(li) {
+        if (ul.classList.contains('done')) return;
+        state.quiz.picked[n] = li.textContent; save(); mark(li); quizScore();
+      }
+      ul.querySelectorAll('li').forEach(function (li) {
+        li.addEventListener('click', function () { pick(li); });
+        li.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(li); } });
+        if (state.quiz.picked[n] === li.textContent) mark(li);
+      });
+      quiz.appendChild(box);
+    });
+    quizScore();
+  }
+  function quizScore() {
+    if (!score) return;
+    var done = 0, right = 0;
+    L.quiz.forEach(function (it, n) { var p = state.quiz.picked[n]; if (p !== undefined) { done++; if (p === it.ok) right++; } });
+    score.textContent = done ? 'Верно ' + right + ' из ' + done + (done === L.quiz.length ? ' · квиз пройден' : '') : '';
+  }
+  quizRender();
+
+  var reset = document.getElementById('reset');
+  if (reset) reset.addEventListener('click', function () {
+    state = {}; save();
+    if (deck) cardsStart();
+    quizRender();
+  });
+})();
+</script>
+
+</html>
