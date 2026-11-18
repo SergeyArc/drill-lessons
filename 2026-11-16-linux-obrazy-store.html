@@ -295,6 +295,7 @@ window.LESSON = { id: '2026-11-16-linux-obrazy-store', cards: [{"q": "Из че�
   if (!L || !L.id) throw new Error('window.LESSON.id не задан');
   var KEY = 'drill:' + L.id;
   var state = load();
+  if (state && state.quiz) { delete state.quiz; }  // квиз больше не хранится между загрузками
   function load() { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { return {}; } }
   function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} }
   function shuffle(a) { for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
@@ -368,9 +369,10 @@ window.LESSON = { id: '2026-11-16-linux-obrazy-store', cards: [{"q": "Из че�
 
   // квиз: варианты перемешиваются при каждой загрузке
   var quiz = document.getElementById('quiz'), score = document.getElementById('score');
+  var qpick = {};  // ответы квиза живут только в этой загрузке страницы, в localStorage не пишутся
   function quizRender() {
     if (!quiz) return;
-    if (!state.quiz || state.quiz.n !== L.quiz.length) state.quiz = { n: L.quiz.length, picked: {} };
+    qpick = {};  // каждая загрузка и сброс — чистый квиз
     quiz.innerHTML = '';
     L.quiz.forEach(function (it, n) {
       var box = document.createElement('div'); box.className = 'qz';
@@ -390,12 +392,11 @@ window.LESSON = { id: '2026-11-16-linux-obrazy-store', cards: [{"q": "Из че�
       }
       function pick(li) {
         if (ul.classList.contains('done')) return;
-        state.quiz.picked[n] = li.textContent; save(); mark(li); quizScore();
+        qpick[n] = li.textContent; mark(li); quizScore();
       }
       ul.querySelectorAll('li').forEach(function (li) {
         li.addEventListener('click', function () { pick(li); });
         li.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(li); } });
-        if (state.quiz.picked[n] === li.textContent) mark(li);
       });
       quiz.appendChild(box);
     });
@@ -404,7 +405,7 @@ window.LESSON = { id: '2026-11-16-linux-obrazy-store', cards: [{"q": "Из че�
   function quizScore() {
     if (!score) return;
     var done = 0, right = 0;
-    L.quiz.forEach(function (it, n) { var p = state.quiz.picked[n]; if (p !== undefined) { done++; if (p === it.ok) right++; } });
+    L.quiz.forEach(function (it, n) { var p = qpick[n]; if (p !== undefined) { done++; if (p === it.ok) right++; } });
     score.textContent = done ? 'Верно ' + right + ' из ' + done + (done === L.quiz.length ? ' · квиз пройден' : '') : '';
   }
   quizRender();
